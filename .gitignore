@@ -1,0 +1,7 @@
+.vscode
+.idea
+
+arch/kernel/*
+arch/rootfs/*
+!arch/kernel/*/.config
+!arch/rootfs/*/.config
