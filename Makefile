@@ -55,14 +55,16 @@ patch: ##@ Patch submodules projects
        ##@ e.g. make patch apply=rootfs / make patch export=rootfs / make patch reset=kernel
 ifdef apply
 	@./tools/patch.py --apply $(apply)
-endif
-ifdef export
-	@./tools/patch.py --export $(export)
-endif
-ifdef reset
-	@./tools/patch.py --reset $(reset)
 else
-	$(error Please specify a patch command)
+    ifdef export
+		@./tools/patch.py --export $(export)
+    else
+        ifdef reset
+			@./tools/patch.py --reset $(reset)
+        else
+			$(error Please specify a patch command)
+        endif
+    endif
 endif
 
 %-all-patch: ##@ Patch all submodules projects
