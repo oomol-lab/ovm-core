@@ -1,4 +1,69 @@
-.PHONY: %-clean clean help
+.PHONY: %-build build %-nconfig %-menuconfig patch %-clean clean help
+
+##@
+##@ Build commands
+##@
+
+%-build: ##@ Build linux kernel or rootfs 
+         ##@ e.g. rootfs-amd64-build / rootfs-arm64-build / kernel-amd64-build / kernel-arm64-build
+	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+
+ifeq ($(word 2, $(subst -, ,$*)),arm64)
+	$(MAKE) -C arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- build
+else
+	$(MAKE) -C arch/$(_DIR)/$(_ARCH) build
+endif
+
+build: ##@ Build all arch linux kernel and rootfs
+	$(MAKE) kernel-amd64-build
+	$(MAKE) kernel-arm64-build
+	$(MAKE) rootfs-amd64-build
+	$(MAKE) rootfs-arm64-build
+
+##@
+##@ Config commands
+##@
+
+%-nconfig: ##@ Use nconfig configure linux kernel or rootfs 
+           ##@ e.g. rootfs-amd64-nconfig / rootfs-arm64-nconfig / kernel-amd64-nconfig / kernel-arm64-nconfig
+	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+
+ifeq ($(word 2, $(subst -, ,$*)),arm64)
+	$(MAKE) -C arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig
+else
+	$(MAKE) -C arch/$(_DIR)/$(_ARCH) nconfig
+endif
+
+%-menuconfig: ##@ Use menuconfig configure linux kernel or rootfs
+              ##@ e.g. rootfs-amd64-menuconfig / rootfs-arm64-menuconfig / kernel-amd64-menuconfig / kernel-arm64-menuconfig
+	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+
+ifeq ($(word 2, $(subst -, ,$*)),arm64)
+	$(MAKE) -C arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
+else
+	$(MAKE) -C arch/$(_DIR)/$(_ARCH) menuconfig
+endif
+
+##@
+##@ Patch command
+##@
+
+patch: ##@ Patch submodules projects
+       ##@ e.g. make patch apply=rootfs / make patch export=rootfs / make patch reset=kernel
+ifdef apply
+	@./tools/patch.py --apply $(apply)
+endif
+ifdef export
+	@./tools/patch.py --export $(export)
+endif
+ifdef reset
+	@./tools/patch.py --reset $(reset)
+else
+	$(error Please specify a patch command)
+endif
 
 ##@
 ##@ Clean build files commands
