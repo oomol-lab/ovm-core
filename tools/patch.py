@@ -88,7 +88,7 @@ def git_unpushed_commits(submodule):
 def git_format_patch(submodule):
     commits = git_unpushed_commits(submodule)
     if len(commits) == 0:
-        print("Not found need export commits")
+        print("Not found need export commits at {}".format(submodule))
         exit(0)
     
     stdout = git_sub(
@@ -140,7 +140,7 @@ def backup(submodule):
         ]
     )
 
-    print("Backup branch: {}".format(backup_branch))
+    print("Backup branch: {} in {}".format(backup_branch, submodule))
 
     ref = git_ref(submodule)
     git_sub(
@@ -166,14 +166,14 @@ def export(submodule):
 def reset(submodule):
     commits = git_unpushed_commits(submodule)
     if len(commits) == 0:
-        print("Not found need reset commits")
+        print("Not found need reset commits at {}".format(submodule))
         exit(0)
     
     backup(submodule)
 
     for commit in commits:
         h, subject = commit.split(":", 1)
-        print("Resting commit hash: {}, subject: {}".format(h, subject))
+        print("Resting commit hash: {}, subject: {} in {}".format(h, subject, submodule))
 
         git_sub(
             submodule,
@@ -225,6 +225,8 @@ def apply(submodule):
                 patch_path
             ]
         )
+
+    print("Apply {} patches success".format(submodule))
 
 def main(argv):
     submodules = git_submodule_list()
