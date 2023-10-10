@@ -159,8 +159,9 @@ def export(submodule):
         for patch in patches:
             patch_filename = patch_generate_filename(patch)
             with open(os.path.join(workdir, patch_filename + ".patch"), "wb") as p:
-                p.write(patch)
-            
+                formatted_patch = "".join(patch).rstrip("\n") + "\n"
+                p.write(formatted_patch.encode("utf-8"))
+
             pl.write(patch_filename + ".patch\n")
 
 def reset(submodule):
@@ -179,7 +180,7 @@ def reset(submodule):
             submodule,
             [
                 "reset",
-                "--head",
+                "--hard",
                 h + "~1"
             ]
         )
@@ -208,8 +209,9 @@ def apply(submodule):
                 "apply",
                 "--whitespace",
                 "fix",
-                "--3way"
-                "--check"
+                "--3way",
+                "--check",
+                patch_path
             ]
         )
 
@@ -220,13 +222,13 @@ def apply(submodule):
                 "--keep-cr",
                 "--whitespace",
                 "fix",
+                "--quiet",
                 "--3way",
-                "fix",
                 patch_path
             ]
         )
 
-    print("Apply {} patches success".format(submodule))
+        print("Applying {} patches success".format(patch_path))
 
 def main(argv):
     submodules = git_submodule_list()
