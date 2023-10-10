@@ -1,0 +1,213 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Christian Stewart <christian@aperture.us>
+Date: Mon, 22 May 2023 13:23:46 -0700
+Subject: package/podman: new package
+
+podman is a CLI tool for spawning and running containers according to the OCI
+specification.
+
+https://github.com/containers/podman
+
+From: https://patchwork.ozlabs.org/project/buildroot/patch/20230522202346.209785-2-christian@aperture.us/
+
+Signed-off-by: Christian Stewart <christian@aperture.us>
+Tested-by: TIAN Yuanhao <tianyuanhao3@163.com>
+
+diff --git a/DEVELOPERS b/DEVELOPERS
+index d2c85aa471d942fc626c3e98b7e1166ce401b435..a34436176e551c0592eec72c0768e02a0796b009 100644
+--- a/DEVELOPERS
++++ b/DEVELOPERS
+@@ -563,6 +563,7 @@ F:	package/moby-buildkit/
+ F:	package/mosh/
+ F:	package/nerdctl/
+ F:	package/pkg-golang.mk
++F:	package/podman/
+ F:	package/rtl8821au/
+ F:	package/rtl8821cu/
+ F:	package/runc/
+diff --git a/package/Config.in b/package/Config.in
+index e4e2a96ca68ed66c2894b5296b16886edaea3c26..31f54d6a943bad95165e1a6e276a7dee8caf3979 100644
+--- a/package/Config.in
++++ b/package/Config.in
+@@ -2689,6 +2689,7 @@ menu "System tools"
+ 	source "package/openvmtools/Config.in"
+ 	source "package/pamtester/Config.in"
+ 	source "package/petitboot/Config.in"
++	source "package/podman/Config.in"
+ 	source "package/polkit/Config.in"
+ 	source "package/powerpc-utils/Config.in"
+ 	source "package/procps-ng/Config.in"
+diff --git a/package/podman/Config.in b/package/podman/Config.in
+new file mode 100644
+index 0000000000000000000000000000000000000000..92f5d6ae3d2ab9e7b8d2be28ff6291e1b8909096
+--- /dev/null
++++ b/package/podman/Config.in
+@@ -0,0 +1,58 @@
++config BR2_PACKAGE_PODMAN
++	bool "podman"
++	depends on !BR2_TOOLCHAIN_USES_UCLIBC # no fexecve
++	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
++	depends on BR2_PACKAGE_HOST_GO_TARGET_CGO_LINKING_SUPPORTS
++	depends on BR2_TOOLCHAIN_HAS_THREADS # conmon -> libglib2
++	depends on BR2_USE_MMU # libgpgme, conmon -> libglib2
++	depends on BR2_USE_WCHAR # conmon -> libglib2
++	select BR2_PACKAGE_CGROUPFS_MOUNT if !BR2_PACKAGE_SYSTEMD # runtime
++	select BR2_PACKAGE_CNI_PLUGINS
++	select BR2_PACKAGE_CONMON
++	select BR2_PACKAGE_CRUN
++	select BR2_PACKAGE_IPTABLES
++	select BR2_PACKAGE_LIBGLIB2
++	select BR2_PACKAGE_LIBGPGME
++	help
++	  podman is a CLI tool for spawning and running containers
++	  according to the OCI specification.
++
++	  https://github.com/containers/podman
++
++if BR2_PACKAGE_PODMAN
++
++config BR2_PACKAGE_PODMAN_DRIVER_BTRFS
++	bool "btrfs filesystem driver"
++	depends on BR2_USE_MMU # btrfs-progs
++	depends on BR2_TOOLCHAIN_HAS_THREADS # btrfs-progs
++	select BR2_PACKAGE_BTRFS_PROGS
++	help
++	  Build the btrfs filesystem driver.
++
++config BR2_PACKAGE_PODMAN_DRIVER_DEVICEMAPPER
++	bool "devicemapper filesystem driver"
++	depends on BR2_TOOLCHAIN_HAS_THREADS # lvm2
++	depends on BR2_USE_MMU # lvm2
++	depends on !BR2_STATIC_LIBS # lvm2
++	select BR2_PACKAGE_LVM2
++	help
++	  Build the devicemapper filesystem driver.
++
++config BR2_PACKAGE_PODMAN_DRIVER_VFS
++	bool "vfs filesystem driver"
++	depends on BR2_USE_WCHAR # gvfs
++	depends on BR2_USE_MMU # gvfs
++	depends on BR2_TOOLCHAIN_HAS_THREADS # gvfs
++	depends on !BR2_STATIC_LIBS # gvfs
++	select BR2_PACKAGE_GVFS
++	help
++	  Build the vfs filesystem driver.
++
++endif
++
++comment "podman needs a glibc or musl toolchain w/ threads, wchar"
++	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS && \
++		BR2_PACKAGE_HOST_GO_TARGET_CGO_LINKING_SUPPORTS
++	depends on !BR2_USE_WCHAR || !BR2_TOOLCHAIN_HAS_THREADS || \
++		BR2_TOOLCHAIN_USES_UCLIBC
++	depends on BR2_USE_MMU
+diff --git a/package/podman/containers-policy.json b/package/podman/containers-policy.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..4480eb82b4d9c0a75626fa92fb7e8cce64f221a1
+--- /dev/null
++++ b/package/podman/containers-policy.json
+@@ -0,0 +1,14 @@
++{
++  "default": [
++    {
++    "type": "insecureAcceptAnything"
++  }
++  ],
++  "transports":
++  {
++    "docker-daemon":
++    {
++      "": [{"type":"insecureAcceptAnything"}]
++    }
++  }
++}
+diff --git a/package/podman/podman.hash b/package/podman/podman.hash
+new file mode 100644
+index 0000000000000000000000000000000000000000..c011068682d3d803b094feb314e431fca304261d
+--- /dev/null
++++ b/package/podman/podman.hash
+@@ -0,0 +1,3 @@
++# Locally computed
++sha256  830a633630bf6e61f2b8d4ca00efdd9a173ef25cdd49d4a4364c293e088561df  podman-4.5.0.tar.gz
++sha256  62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3  LICENSE
+diff --git a/package/podman/podman.mk b/package/podman/podman.mk
+new file mode 100644
+index 0000000000000000000000000000000000000000..f888f3ae5e6e6cc8eb325b8dc09c41a9f6f5c09a
+--- /dev/null
++++ b/package/podman/podman.mk
+@@ -0,0 +1,75 @@
++################################################################################
++#
++# podman
++#
++################################################################################
++
++PODMAN_VERSION = 4.5.0
++PODMAN_SITE = $(call github,containers,podman,v$(PODMAN_VERSION))
++PODMAN_LICENSE = Apache-2.0
++PODMAN_LICENSE_FILES = LICENSE
++
++PODMAN_CPE_ID_VENDOR = podman_project
++PODMAN_GOMOD = github.com/containers/podman/v4
++
++PODMAN_BUILD_TARGETS = cmd/podman cmd/rootlessport cmd/quadlet
++PODMAN_DEPENDENCIES += libglib2 libgpgme
++PODMAN_LDFLAGS = \
++	-X $(PODMAN_GOMOD)/libpod/define.gitCommit=$(PODMAN_VERSION)
++PODMAN_TAGS = exclude_graphdriver_zfs
++
++ifeq ($(BR2_INIT_SYSTEMD),y)
++PODMAN_TAGS += systemd
++endif
++
++ifeq ($(BR2_PACKAGE_LIBAPPARMOR),y)
++PODMAN_DEPENDENCIES += libapparmor
++PODMAN_TAGS += apparmor
++endif
++
++ifeq ($(BR2_PACKAGE_LIBSECCOMP),y)
++PODMAN_TAGS += seccomp
++PODMAN_DEPENDENCIES += libseccomp host-pkgconf
++endif
++
++ifeq ($(BR2_PACKAGE_LIBSELINUX),y)
++PODMAN_TAGS += selinux
++PODMAN_DEPENDENCIES += libselinux
++endif
++
++ifeq ($(BR2_PACKAGE_PODMAN_DRIVER_BTRFS),y)
++PODMAN_DEPENDENCIES += btrfs-progs
++else
++PODMAN_TAGS += exclude_graphdriver_btrfs
++endif
++
++ifeq ($(BR2_PACKAGE_PODMAN_DRIVER_DEVICEMAPPER),y)
++PODMAN_DEPENDENCIES += lvm2
++else
++PODMAN_TAGS += exclude_graphdriver_devicemapper
++endif
++
++ifeq ($(BR2_PACKAGE_PODMAN_DRIVER_VFS),y)
++PODMAN_DEPENDENCIES += gvfs
++else
++PODMAN_TAGS += exclude_graphdriver_vfs
++endif
++
++define PODMAN_INSTALL_TARGET_CMDS
++	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR=$(TARGET_DIR) PREFIX=/usr \
++		install.bin
++	$(INSTALL) -d -m 700 $(TARGET_DIR)/etc/cni
++	$(INSTALL) -d -m 700 $(TARGET_DIR)/etc/cni/net.d
++	$(INSTALL) -D -m 644 $(@D)/cni/87-podman-bridge.conflist \
++		$(TARGET_DIR)/etc/cni/net.d/87-podman-bridge.conflist
++	$(INSTALL) -d -m 755 $(TARGET_DIR)/etc/containers
++	$(INSTALL) -D -m 644 $(PODMAN_PKGDIR)/containers-policy.json \
++		$(TARGET_DIR)/etc/containers/policy.json
++endef
++
++define PODMAN_INSTALL_INIT_SYSTEMD
++	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR=$(TARGET_DIR) PREFIX=/usr \
++		install.systemd
++endef
++
++$(eval $(golang-package))
