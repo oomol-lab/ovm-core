@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Black-Hole1 <bh@bugs.cc>
+Date: Wed, 13 Sep 2023 15:15:13 +0800
+Subject: feat(package): add gvforwader
+
+1. From https://github.com/containers/gvisor-tap-vsock/blob/main/cmd/vm/
+2. version must is 0.6.2, because buildroot go version is 1.19.
+
+diff --git a/package/Config.in b/package/Config.in
+index 31f54d6a943bad95165e1a6e276a7dee8caf3979..0586f1a5c2895a59b8c03e979aee3a4436318a6f 100644
+--- a/package/Config.in
++++ b/package/Config.in
+@@ -2328,6 +2328,7 @@ endif
+ 	source "package/glorytun/Config.in"
+ 	source "package/gupnp-tools/Config.in"
+ 	source "package/gutenprint/Config.in"
++	source "package/gvforwarder/Config.in"
+ 	source "package/hans/Config.in"
+ 	source "package/haproxy/Config.in"
+ 	source "package/hiawatha/Config.in"
+diff --git a/package/gvforwarder/Config.in b/package/gvforwarder/Config.in
+new file mode 100644
+index 0000000000000000000000000000000000000000..76ca04f8bbe55cbcdc7f0ba83359ae555bf5e9ea
+--- /dev/null
++++ b/package/gvforwarder/Config.in
+@@ -0,0 +1,12 @@
++config BR2_PACKAGE_GVFORWARDER
++	bool "gvforwarder"
++	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
++	depends on BR2_TOOLCHAIN_HAS_THREADS
++	help
++	  A new network stack based on gVisor
++
++	  https://github.com/containers/gvisor-tap-vsock/blob/main/cmd/vm/
++
++comment "gvforwarder needs a toolchain w/ threads"
++	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
++	depends on !BR2_TOOLCHAIN_HAS_THREADS
+diff --git a/package/gvforwarder/gvforwarder.hash b/package/gvforwarder/gvforwarder.hash
+new file mode 100644
+index 0000000000000000000000000000000000000000..97e699cbfc11ccac141e4c9a5b17d0f9e4688a68
+--- /dev/null
++++ b/package/gvforwarder/gvforwarder.hash
+@@ -0,0 +1,6 @@
++# From https://patch-diff.githubusercontent.com/raw/containers/gvisor-tap-vsock/pull/215.patch
++sha256  1908ab85a8f0325c6c4e96427e9628b9d9273ca15af2c60e71f3ac38ac25eaf5  215.patch
++
++# Locally computed:
++sha256  64de2a0223c2219a85d66ebb200c3d8b3501276754d7b0267435e81f40215e7d  gvforwarder-0.6.2.tar.gz
++sha256  cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  LICENSE
+\ No newline at end of file
+diff --git a/package/gvforwarder/gvforwarder.mk b/package/gvforwarder/gvforwarder.mk
+new file mode 100644
+index 0000000000000000000000000000000000000000..e15daddd7b7572d6713534412d4ec0e34b707e93
+--- /dev/null
++++ b/package/gvforwarder/gvforwarder.mk
+@@ -0,0 +1,28 @@
++################################################################################
++#
++# gvforwarder
++#
++################################################################################
++
++GVFORWARDER_VERSION = 0.6.2
++GVFORWARDER_SITE = $(call github,containers,gvisor-tap-vsock,v$(GVFORWARDER_VERSION))
++
++GVFORWARDER_LICENSE = Apache-2.0
++GVFORWARDER_LICENSE_FILES = LICENSE
++
++GVFORWARDER_BUILD_TARGETS = cmd/vm
++GVFORWARDER_LDFLAGS = -s -w
++
++GVFORWARDER_PATCH = \
++	https://patch-diff.githubusercontent.com/raw/containers/gvisor-tap-vsock/pull/215.patch
++
++define GVFORWARDER_INSTALL_TARGET_CMDS
++	$(INSTALL) -D -m 755 $(@D)/bin/vm $(TARGET_DIR)/usr/bin/gvforwarder
++	$(INSTALL) -D -m 644 $(GVFORWARDER_PKGDIR)/systemd/gvforwader.service \
++		$(TARGET_DIR)/etc/systemd/system/
++
++	$(INSTALL) -D -m 644 $(GVFORWARDER_PKGDIR)/wsl.conf \
++		$(TARGET_DIR)/etc/wsl.conf
++endef
++
++$(eval $(golang-package))
+diff --git a/package/gvforwarder/systemd/gvforwader.service b/package/gvforwarder/systemd/gvforwader.service
+new file mode 100644
+index 0000000000000000000000000000000000000000..9ce72adac13560b2bdc4d9562a2532cb7a572b52
+--- /dev/null
++++ b/package/gvforwarder/systemd/gvforwader.service
+@@ -0,0 +1,15 @@
++[Unit]
++Description=gvisor-tap-vsock Network Traffic Forwarder
++Requires=podman.service
++After=podman.service
++StartLimitIntervalSec=0
++ConditionVirtualization=!wsl
++
++[Service]
++Type=simple
++Restart=on-failure
++ExecStop=/bin/kill -s TERM $MAINPID
++ExecStart=/usr/bin/gvforwarder
++
++[Install]
++WantedBy=default.target
+\ No newline at end of file
+diff --git a/package/gvforwarder/wsl.conf b/package/gvforwarder/wsl.conf
+new file mode 100644
+index 0000000000000000000000000000000000000000..c55b3816c41dcc897aac69dad9893030db26d7e0
+--- /dev/null
++++ b/package/gvforwarder/wsl.conf
+@@ -0,0 +1,2 @@
++[boot]
++systemd=true
+\ No newline at end of file
