@@ -1,18 +1,14 @@
-.PHONY: clean
-
-SHELL := $(shell command -v bash;)
+.PHONY: %-clean clean help
 
 ##@
 ##@ Clean build files commands
 ##@
 
-kernel-%-clean: ##@ Clean kernel build files with specified architecture
-                ##@ e.g. kernel-amd64-clean / kernel-arm64-clean
-	$(MAKE) -C ./arch/kernel/$* clean
-
-rootfs-%-clean: ##@ Clean rootfs build files with specified architecture
-                ##@ e.g. rootfs-amd64-clean / rootfs-arm64-clean
-	$(MAKE) -C ./arch/rootfs/$* clean
+%-clean: ##@ Clean linux kernel or rootfs build files with specified architecture
+         ##@ e.g. rootfs-amd64-clean / rootfs-arm64-clean / kernel-amd64-clean / kernel-arm64-clean
+	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+	$(MAKE) -C arch/$(_DIR)/$(_ARCH) clean
 
 clean: ##@ Clean all build files
 	$(MAKE) kernel-amd64-clean
