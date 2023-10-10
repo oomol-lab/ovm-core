@@ -28,7 +28,8 @@ sudo apt-get build-dep linux
 ### Build
 
 ```bash
-# TODO
+make apply-all-patch
+make build # or rootfs-amd64-build / rootfs-arm64-build / kernel-amd64-build / kernel-arm64-build
 ```
 
 ## Project Structure
@@ -45,6 +46,17 @@ sudo apt-get build-dep linux
 │   └── rootfs # Patches for rootfs
 │       ├── .patches # Patch list
 │       └── *.patch
+├── arch
+│   ├── kernel
+│   │   ├── amd64
+│   │   │   └── .config # Linux kernel amd64 config
+│   │   └── arm64
+│   │       └── .config # Linux kernel arm64 config
+│   └── rootfs # Rootfs config
+│       ├── amd64
+│       │   └── .config # Buildroot amd64 config
+│       └── arm64
+│           └── .config # Buildroot arm64 config
 └── tools
     └── patch.py # Patch tool (./tools/patch.py -help)
 ```
