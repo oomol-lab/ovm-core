@@ -1,0 +1,549 @@
+#!/bin/bash
+#
+# ## musl-toolchain
+#
+# musl-libc GCC cross compiler toolchain bootstrap script
+#
+# Usage: ./musl-toolchain <arch> [gcc version] [linux version] [fast|all]
+#
+# This script by default builds cross compilers for the supported
+# target architectures. If the optional "native-cross" option is
+# given, then in addition to building a cross compiler for the
+# target, the script will use the target cross compiler to build
+# a native compiler for the target architecture linked with the
+# target architecture's musl C library. The native compiler is
+# installed into ${SYSROOT}/usr/bin
+#
+# ## Supported architectures:
+#
+# - x86_64
+# - aarch64
+#
+# ## Directory layout
+#
+# - ${toolchain_prefix}/${ARCH}-${gcc_version}
+#   - bin/
+#     - {$triple}-{as,ld,gcc,g++,strip,objdump} # host binaries
+#   - ${triple}                                 # sysroot
+#     - include                                 # target headers
+#     - lib                                     # target libraries
+#     - usr
+#       - lib -> ../lib
+#       - bin
+#         - {as,ld,gcc,g++,strip,objdump}       # target binaries
+#
+
+# 脚本版本跟随内核版本
+VERSION=v6
+
+case "$1" in
+    x86_64)
+        ARCH=x86_64
+        LINUX_ARCH=x86
+        WITHARCH=--with-arch-64=core2
+        ;;
+    aarch64)
+        ARCH=aarch64
+        LINUX_ARCH=arm64
+        WITHARCH=--with-arch=armv8-a
+        ;;
+    *)
+        echo "Usage: $(basename $0) {x86_64|aarch64} [gcc version] [linux version]"
+	echo
+	echo -e "Example: $0 x86_64"
+	echo -e "     or: $0 x86_64 13.2.0"
+	echo -e "     or: $0 x86_64 13.2.0 6.5"
+	echo -e "     or: $0 x86_64 13.2.0 6.5 native-cross"
+	echo
+	echo "native-cross default disbaled . native-cross is used for building target machine compiler into \${SYSROOT}"
+        exit 1
+esac
+
+set -e
+
+# 设置顶层工作目录
+TOPDIR=$(pwd)
+
+# 定义工具链所需包的版本
+gmp_version=6.3.0
+mpc_version=1.3.1
+mpfr_version=4.2.1
+isl_version=0.24
+cloog_version=0.18.4
+binutils_version=2.40
+gcc_version=12.3.0
+musl_version=1.2.4
+glibc_version=2.38
+linux_version=6.1.50
+
+require_list="gmp mpc mpfr isl cloog binutils gcc glibc musl linux"
+
+test -f musl-cross.conf && source musl-cross.conf
+
+# 定义目标工具链的目录前缀
+# 这个目录用于支持多版本和多架构工具链共存
+toolchain_prefix="${TOPDIR}/toolchain"
+
+# 编译软件用到的核心变量
+PREFIX="${toolchain_prefix}/${ARCH}-${gcc_version}"
+TRIPLE="${ARCH}-linux-musl${SUFFIX}"
+SYSROOT="${PREFIX}/${TARGET:=$TRIPLE}"
+CROSS_DIR="${TOPDIR}/crosstmp"
+
+# 临时交叉工具链的绝对路径目录
+SRC_DIR="${CROSS_DIR}"/src
+BUILD_DIR="${CROSS_DIR}"/build
+STAMPS_DIR="${CROSS_DIR}"/stamps
+ARCHIVE_DIR="${CROSS_DIR}"/archives
+
+test -f "${PREFIX}/bootstrap.conf" && exit 0
+
+# 从命令行读取需要下载的GCC版本和Linux版本
+# 如果提供了，就替换配置文件和预设的版本值
+if [ $# -gt 1 ]; then
+    shift
+
+    rtcode=$(check_http_code "https://ftp.gnu.org/gnu/gcc/gcc-$1/")
+    if [ "$rtcode" = "200" ]; then
+	gcc_version="$1"
+        shift
+    fi
+
+    rtcode=$(check_http_code "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tag/?h=v$1")
+    if [ "$rtcode" = "200" ]; then
+        linux_version="$1"
+        shift
+    fi
+fi
+
+# 各个组件的源码下载地址，定义为常量
+gmp_URL="http://ftpmirror.gnu.org/gmp/gmp-${gmp_version}.tar.xz"
+mpc_URL="http://ftpmirror.gnu.org/mpc/mpc-${mpc_version}.tar.gz"
+mpfr_URL="http://ftpmirror.gnu.org/mpfr/mpfr-${mpfr_version}.tar.xz"
+musl_URL="http://musl.libc.org/releases/musl-${musl_version}.tar.gz"
+glibc_URL="http://ftpmirror.gnu.org/glibc/glibc-${glibc_version}.tar.xz"
+isl_URL="http://gcc.gnu.org/pub/gcc/infrastructure/isl-${isl_version}.tar.bz2"
+gcc_URL="http://ftpmirror.gnu.org/gcc/gcc-${gcc_version}/gcc-${gcc_version}.tar.xz"
+binutils_URL="http://ftpmirror.gnu.org/binutils/binutils-${binutils_version}.tar.xz"
+cloog_URL="http://www.bastoul.net/cloog/pages/download/cloog-${cloog_version}.tar.gz"
+linux_URL="http://169.254.123.32:3000/linux-${linux_version}.tar.xz"
+
+
+trap 'test -L "${toolchain_prefix}/${ARCH}" && unlink "${toolchain_prefix}/${ARCH}"' INT ERR TERM
+
+make_directories() {
+    test -d "${SRC_DIR}" || mkdir -p "${SRC_DIR}"
+    test -d "${BUILD_DIR}" || mkdir -p "${BUILD_DIR}"
+    test -d "${STAMPS_DIR}" || mkdir -p "${STAMPS_DIR}"
+    test -d "${ARCHIVE_DIR}" || mkdir -p "${ARCHIVE_DIR}"
+    test -d "${PREFIX}" || mkdir -p "${PREFIX}"
+}
+
+clean_tmpdir() {
+    rm -rf "${BUILD_DIR}"/gcc-*
+    rm -rf "${SRC_DIR}"/linux-*
+}
+
+check_http_code() {
+    local url="$1"
+
+    code=$(curl --head --insecure --fail --silent --location --write-out '%{http_code}\n' --output /dev/null --noproxy '*' "$url")
+
+    echo $code
+}
+
+have_cached() {
+    local file="$1"
+
+    if test -f "${ARCHIVE_DIR}/$file"; then
+        echo "yes"
+	return
+    fi
+
+    echo "no"
+}
+
+fetch_source() {
+    local name="$1"
+    local var="${name}_URL"
+    local url=${!var}
+    local file
+
+    local url_stat=$(check_http_code "$url")
+
+    if [ "$url_stat" = 200 ]; then
+        file=$(basename "$url")
+
+	if [ "$(have_cached "$file")" = "yes" ];then
+       	    return 0
+        fi
+
+        echo -e "==> Downloading $url\n"
+	wget --show-progress -c -L -O "${ARCHIVE_DIR}/$file" "$url"
+    else
+        echo -e "Package $name download url is not accessible"
+	echo -e "=> $url\n"
+
+	return 1
+    fi
+}
+
+unpack_source() {
+    local name="$1"
+    local v_ver="${name}_version"
+    local v_url="${name}_URL"
+    local version=${!v_ver}
+    local url=${!v_url}
+    local file=$(basename "$url")
+
+    if [ "$(have_cached "$file")" = "yes" ]; then
+        echo -e "==> Extract file: $file\n"
+
+        test -d "${SRC_DIR}/${name}-${version}" || \
+            tar -C "${SRC_DIR}" -xf "${ARCHIVE_DIR}/$file"
+    fi
+}
+
+batch_download() {
+    for pkg in $require_list; do
+       fetch_source $pkg
+    done
+}
+
+extract_archives() {
+    for pkg in $require_list; do
+       unpack_source $pkg
+    done
+}
+
+build_gmp() {
+    local host="$1"; shift
+
+    test -f "${STAMPS_DIR}"/lib-gmp-${host} || (
+        set -e
+        test -d "${BUILD_DIR}"/gmp-${host} || mkdir "${BUILD_DIR}"/gmp-${host}
+        cd "${BUILD_DIR}"/gmp-${host}
+        CFLAGS=-fPIE "${SRC_DIR}"/gmp-${gmp_version}/configure \
+            --disable-shared \
+            --prefix="${BUILD_DIR}"/install-${host} \
+            $*
+        make -j$(nproc) && make install
+    ) && touch "${STAMPS_DIR}"/lib-gmp-${host}
+    test "$?" -eq "0" || exit 1
+}
+
+build_mpfr() {
+    local host="$1"; shift
+
+    test -f "${STAMPS_DIR}"/lib-mpfr-${host} || (
+        set -e
+        test -d "${BUILD_DIR}"/mpfr-${host} || mkdir "${BUILD_DIR}"/mpfr-${host}
+        cd "${BUILD_DIR}"/mpfr-${host}
+        CFLAGS=-fPIE "${SRC_DIR}"/mpfr-${mpfr_version}/configure \
+            --disable-shared \
+            --prefix="${BUILD_DIR}"/install-${host} \
+            --with-gmp="${BUILD_DIR}"/install-${host} \
+            $*
+        make -j$(nproc) && make install
+    ) && touch "${STAMPS_DIR}"/lib-mpfr-${host}
+    test "$?" -eq "0" || exit 1
+}
+
+build_mpc() {
+    local host="$1"; shift
+
+    test -f "${STAMPS_DIR}"/lib-mpc-${host} || (
+        set -e
+        test -d "${BUILD_DIR}"/mpc-${host} || mkdir "${BUILD_DIR}"/mpc-${host}
+        cd "${BUILD_DIR}"/mpc-${host}
+        CFLAGS=-fPIE "${SRC_DIR}"/mpc-${mpc_version}/configure \
+            --disable-shared \
+            --prefix="${BUILD_DIR}"/install-${host} \
+            --with-gmp="${BUILD_DIR}"/install-${host} \
+            --with-mpfr="${BUILD_DIR}"/install-${host} \
+            $*
+        make -j$(nproc) && make install
+    ) && touch "${STAMPS_DIR}"/lib-mpc-${host}
+    test "$?" -eq "0" || exit 1
+}
+
+build_isl() {
+    local host="$1"; shift
+
+    if [ "${build_graphite}" = "yes" ]; then
+        test -f "${STAMPS_DIR}"/lib-isl-${host} || (
+            set -e
+            test -d "${BUILD_DIR}"/isl-${host} || mkdir "${BUILD_DIR}"/isl-${host}
+            cd "${BUILD_DIR}"/isl-${host}
+            CFLAGS=-fPIE "${SRC_DIR}"/isl-${isl_version}/configure \
+                --disable-shared \
+                --prefix="${BUILD_DIR}"/install-${host} \
+                --with-gmp-prefix="${BUILD_DIR}"/install-${host} \
+                $*
+            make -j$(nproc) && make install
+        ) && touch "${STAMPS_DIR}"/lib-isl-${host}
+        test "$?" -eq "0" || exit 1
+    fi
+}
+
+build_cloog() {
+    local host="$1"; shift
+
+    if [ "${build_graphite}" = "yes" ]; then
+        test -f "${STAMPS_DIR}"/lib-cloog-${host} || (
+            set -e
+            test -d "${BUILD_DIR}"/cloog-${host} || mkdir "${BUILD_DIR}"/cloog-${host}
+            cd "${BUILD_DIR}"/cloog-${host}
+            CFLAGS=-fPIE "${SRC_DIR}"/cloog-${cloog_version}/configure \
+                --disable-shared \
+                --prefix="${BUILD_DIR}"/install-${host} \
+                --with-isl-prefix="${BUILD_DIR}"/install-${host} \
+                --with-gmp-prefix="${BUILD_DIR}"/install-${host} \
+                $*
+            make -j$(nproc) && make install
+        ) && touch "${STAMPS_DIR}"/lib-cloog-${host}
+        test "$?" -eq "0" || exit 1
+    fi
+}
+
+build_binutils() {
+    local host="$1"; shift
+    local prefix="$1"; shift
+    local destdir="$1"; shift
+    local transform="$1"; shift
+
+    test -f "${STAMPS_DIR}"/binutils-${host}-${ARCH} || (
+        set -e
+        test -d "${BUILD_DIR}"/binutils-${host}-${ARCH} || mkdir "${BUILD_DIR}"/binutils-${host}-${ARCH}
+        cd "${BUILD_DIR}"/binutils-${host}-${ARCH}
+        CFLAGS=-fPIE "${SRC_DIR}"/binutils-${binutils_version}/configure \
+            --prefix="${prefix}" \
+            --target=${TARGET:=$TRIPLE} ${WITHARCH} \
+            ${transform:+--program-transform-name='s&^&'${TRIPLE}'-&'} \
+            --with-sysroot="${SYSROOT}" \
+            --disable-nls \
+            --disable-libssp \
+            --disable-shared \
+            --disable-werror  \
+            --disable-multilib \
+            --with-gmp="${BUILD_DIR}"/install-${host} \
+            --with-mpfr="${BUILD_DIR}"/install-${host} \
+            --with-mpc="${BUILD_DIR}"/install-${host} \
+            ${build_graphite:+--disable-isl-version-check} \
+            ${build_graphite:+--with-isl="${BUILD_DIR}"/install-${host}} \
+            ${build_graphite:+--with-cloog="${BUILD_DIR}"/install-${host}} \
+            $*
+        make -j$(nproc) && make DESTDIR="${destdir}" install
+    ) && touch "${STAMPS_DIR}"/binutils-${host}-${ARCH}
+    test "$?" -eq "0" || exit 1
+}
+
+configure_musl() {
+    test -f "${STAMPS_DIR}"/musl-config-${ARCH} || (
+        set -e
+        rsync -a "${SRC_DIR}"/musl-${musl_version}/ "${BUILD_DIR}"/musl-${ARCH}/
+        cd "${BUILD_DIR}"/musl-${ARCH}
+        echo prefix= > config.mak
+        echo exec_prefix= >> config.mak
+        echo ARCH="${ARCH}" >> config.mak
+        echo CC="${PREFIX}"/bin/${TRIPLE}-gcc >> config.mak
+        echo AS="${PREFIX}"/bin/${TRIPLE}-as >> config.mak
+        echo LD="${PREFIX}"/bin/${TRIPLE}-ld >> config.mak
+        echo AR="${PREFIX}"/bin/${TRIPLE}-ar >> config.mak
+        echo RANLIB="${PREFIX}"/bin/${TRIPLE}-ranlib >> config.mak
+    ) && touch "${STAMPS_DIR}"/musl-config-${ARCH}
+    test "$?" -eq "0" || exit 1
+}
+
+install_musl_headers() {
+    test -f "${STAMPS_DIR}"/musl-headers-${ARCH} || (
+        set -e
+        cd "${BUILD_DIR}"/musl-${ARCH}
+        make DESTDIR="${SYSROOT}" install-headers
+    test -L "${SYSROOT}"/usr || ln -snf . "${SYSROOT}"/usr
+    ) && touch "${STAMPS_DIR}"/musl-headers-${ARCH}
+    test "$?" -eq "0" || exit 1
+}
+
+install_linux_headers() {
+    test -f "${STAMPS_DIR}"/linux-headers-${ARCH} || (
+        set -e
+        mkdir -p "${BUILD_DIR}"/linux-headers-${ARCH}/staged
+        ( cd "${SRC_DIR}"/linux-${linux_version} && \
+            make ARCH=${LINUX_ARCH} O="${BUILD_DIR}"/linux-headers-${ARCH} \
+                INSTALL_HDR_PATH="${BUILD_DIR}"/linux-headers-${ARCH}/staged headers_install )
+        find "${BUILD_DIR}"/linux-headers-${ARCH}/staged/include '(' -name .install -o -name ..install.cmd ')' -exec rm {} +
+        rsync -a "${BUILD_DIR}"/linux-headers-${ARCH}/staged/include/ "${SYSROOT}"/usr/include/
+    ) && touch "${STAMPS_DIR}"/linux-headers-${ARCH}
+    test "$?" -eq "0" || exit 1
+}
+
+build_gcc_stage1() {
+    # musl compiler
+    local host="$1"; shift
+    local prefix="$1"; shift
+    local destdir="$1"; shift
+    local transform="$1"; shift
+
+    test -f "${STAMPS_DIR}"/gcc-stage1-${host}-${ARCH} || (
+        set -e
+        test -d "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH} || mkdir "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH}
+        cd "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH}
+        CFLAGS=-fPIE "${SRC_DIR}"/gcc-${gcc_version}/configure \
+            --prefix="${prefix}" \
+            --target=${TARGET:=$TRIPLE} ${WITHARCH} \
+            ${transform:+--program-transform-name='s&^&'${TRIPLE}'-&'} \
+            --with-sysroot="${SYSROOT}" \
+            --with-gnu-as \
+            --with-gnu-ld \
+            --enable-languages=c,c++ \
+            --enable-target-optspace \
+            --enable-initfini-array \
+            --enable-zlib \
+            --enable-libgcc \
+            --enable-tls \
+            --disable-shared \
+            --disable-threads \
+            --disable-libatomic \
+            --disable-libstdc__-v3 \
+            --disable-libquadmath \
+            --disable-libsanitizer \
+            --disable-libvtv \
+            --disable-libmpx \
+            --disable-multilib \
+            --disable-libssp \
+            --disable-libmudflap \
+            --disable-libgomp \
+            --disable-libitm \
+            --disable-nls \
+            --disable-plugins \
+            --disable-sjlj-exceptions \
+            --disable-bootstrap \
+            --with-gmp="${BUILD_DIR}"/install-${host} \
+            --with-mpfr="${BUILD_DIR}"/install-${host} \
+            --with-mpc="${BUILD_DIR}"/install-${host} \
+            ${build_graphite:+--disable-isl-version-check} \
+            ${build_graphite:+--enable-cloog-backend=isl} \
+            ${build_graphite:+--with-isl="${BUILD_DIR}"/install-${host}} \
+            ${build_graphite:+--with-cloog="${BUILD_DIR}"/install-${host}} \
+            $*
+        make -j$(nproc) inhibit-libc=true all-gcc all-target-libgcc
+        make DESTDIR="${destdir}" inhibit-libc=true install-gcc install-target-libgcc
+    ) && touch "${STAMPS_DIR}"/gcc-stage1-${host}-${ARCH}
+    test "$?" -eq "0" || exit 1
+}
+
+build_musl() {
+    test -f "${STAMPS_DIR}"/musl-dynamic-${ARCH} || (
+        set -e
+        cd "${BUILD_DIR}"/musl-${ARCH}
+        make -j$(nproc)
+        make DESTDIR="${SYSROOT}" install-libs
+    ) && touch "${STAMPS_DIR}"/musl-dynamic-${ARCH}
+    test "$?" -eq "0" || exit 1
+}
+
+build_gcc_stage2() {
+    # final compiler
+    local host="$1"; shift
+    local prefix="$1"; shift
+    local destdir="$1"; shift
+    local transform="$1"; shift
+
+    test -f "${STAMPS_DIR}"/gcc-stage2-${host}-${ARCH} || (
+        set -e
+        test -d "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH} || mkdir "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH}
+        cd "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH}
+        CFLAGS=-fPIE "${SRC_DIR}"/gcc-${gcc_version}/configure \
+            --prefix="${prefix}" \
+            --target=${TARGET:=$TRIPLE} ${WITHARCH} \
+            ${transform:+--program-transform-name='s&^&'${TRIPLE}'-&'} \
+            --with-sysroot="${SYSROOT}" \
+            --with-gnu-as \
+            --with-gnu-ld \
+            --enable-languages=c,c++ \
+            --enable-target-optspace \
+            --enable-initfini-array \
+            --enable-zlib \
+            --enable-libgcc \
+            --enable-tls \
+            --enable-shared \
+            --enable-threads \
+            --enable-libatomic \
+            --enable-libstdc__-v3 \
+            --disable-libquadmath \
+            --disable-libsanitizer \
+            --disable-libvtv \
+            --disable-libmpx \
+            --disable-multilib \
+            --disable-libssp \
+            --disable-libmudflap \
+            --disable-libgomp \
+            --disable-libitm \
+            --disable-nls \
+            --disable-plugins \
+            --disable-sjlj-exceptions \
+            --disable-bootstrap \
+            --with-gmp="${BUILD_DIR}"/install-${host} \
+            --with-mpfr="${BUILD_DIR}"/install-${host} \
+            --with-mpc="${BUILD_DIR}"/install-${host} \
+            ${build_graphite:+--disable-isl-version-check} \
+            ${build_graphite:+--enable-cloog-backend=isl} \
+            ${build_graphite:+--with-isl="${BUILD_DIR}"/install-${host}} \
+            ${build_graphite:+--with-cloog="${BUILD_DIR}"/install-${host}} \
+            $*
+        make -j$(nproc) all-gcc all-target-libgcc all-target-libstdc++-v3 all-target-libatomic
+        make DESTDIR="${destdir}" install-gcc install-target-libgcc install-target-libstdc++-v3 install-target-libatomic
+    ) && touch "${STAMPS_DIR}"/gcc-stage2-${host}-${ARCH}
+    test "$?" -eq "0" || exit 1
+}
+
+#
+# build musl libc toolchain for host
+#
+
+## 1. prepare
+make_directories
+batch_download
+extract_archives
+
+## 2. build stage1
+build_gmp       host
+build_mpfr      host
+build_mpc       host
+build_isl       host
+build_cloog     host
+build_binutils  host "${PREFIX}" / transform-name
+
+configure_musl
+install_musl_headers
+install_linux_headers
+
+build_gcc_stage1    host "${PREFIX}" / transform-name
+build_musl
+build_gcc_stage2    host "${PREFIX}" / transform-name
+
+#
+# build musl libc toolchain for target
+#
+
+if [ "$1" = "native-cross" ]; then
+    export PATH="${PREFIX}"/bin:${PATH}
+
+    build_gmp           "${ARCH}" --host="${TRIPLE}"
+    build_mpfr          "${ARCH}" --host="${TRIPLE}"
+    build_mpc           "${ARCH}" --host="${TRIPLE}"
+    build_isl           "${ARCH}" --host="${TRIPLE}"
+    build_cloog         "${ARCH}" --host="${TRIPLE}"
+    build_binutils      "${ARCH}" /usr "${SYSROOT}" '' --host="${TRIPLE}"
+    build_gcc_stage2    "${ARCH}" /usr "${SYSROOT}" '' --host="${TRIPLE}"
+fi
+
+echo "Finish building cross toolchain works !"; echo
+test -L "${toolchain_prefix}/${ARCH}" || ln -snf "${ARCH}-${gcc_version}" "${toolchain_prefix}/${ARCH}"
+cd "${TOPDIR}" && clean_tmpdir
+
+echo "export PATH='${SYSROOT}'/bin:\$PATH" > "$PREFIX/bootstrap.conf"
+echo "export LD_LIBRARY_PATH='${SYSROOT}'/lib" >> "$PREFIX/bootstrap.conf"
+echo "export LD_RUN_PATH='${SYSROOT}'/lib" >> "$PREFIX/bootstrap.conf"
+

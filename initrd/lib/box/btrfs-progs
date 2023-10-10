@@ -1,0 +1,25 @@
+patches=""
+
+export PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR="${ROOTFS}/usr/lib"
+export CROSS_COMPILE="$TGT-"
+
+export EXT2FS_CFLAGS="-I${ROOTFS}/usr/include"
+export EXT2FS_LIBS="-L${ROOTFS}/usr/lib -lext2fs"
+
+export COM_ERR_CFLAGS="-I${ROOTFS}/usr/include"
+export COM_ERR_LIBS="-L${ROOTFS}/usr/lib -lcom_err"
+
+export BLKID_CFLAGS="-I${ROOTFS}/usr/include"
+export BLKID_LIBS="-L${ROOTFS}/usr/lib -lblkid"
+
+export UUID_CFLAGS="-I${ROOTFS}/usr/include"
+export UUID_LIBS="-L${ROOTFS}/usr/lib -luuid"
+
+export ZLIB_CFLAGS="-I${ROOTFS}/usr/include"
+export ZLIB_LIBS="-L${ROOTFS}/usr/lib -lz"
+
+export ZSTD_CFLAGS="-I${ROOTFS}/usr/include"
+export ZSTD_LIBS="-L${ROOTFS}/usr/lib -lzstd"
+
+config_options="--prefix=/usr --disable-backtrace --disable-convert --disable-largefile --disable-documentation --disable-libudev --disable-python"

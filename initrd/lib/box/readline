@@ -1,0 +1,29 @@
+patches="readline-8.2"
+
+export CROSS_COMPILE="$TGT-"
+
+prep() {
+	sed -i '/MV.*old/d' Makefile.in
+	sed -i '/{OLDSUFF}/c:' support/shlib-install
+
+        for x in $patches; do
+                find "$patchdir" -type f -name "*$x*.patch" -exec patch -p1 -i {} \;
+                find "$patchdir" -type f -name "*$x*.diff" -exec patch -p1 -i {} \;
+        done
+}
+
+config() {
+	munge-config-sub
+
+	./configure --prefix=/usr --host=$TGT --target=$TGT \
+	--with-shared --with-curses
+}
+
+build() {
+	make SHLIB_LIBS="-lncursesw" -j$(nproc)
+}
+
+install() {
+	STRIP="${CROSS_COMPILE}"strip make SHLIB_LIBS="-lncursesw" DESTDIR="$tmp" install
+}
+

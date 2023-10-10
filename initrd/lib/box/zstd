@@ -1,0 +1,10 @@
+patches=""
+
+export CROSS_COMPILE="$TGT-"
+
+config() { :; }
+
+build() {
+	make prefix=/usr lib=/usr/lib -j$(nproc)
+}
+

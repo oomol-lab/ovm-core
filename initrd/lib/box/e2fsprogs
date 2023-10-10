@@ -1,0 +1,6 @@
+patches=""
+
+export CROSS_COMPILE="$TGT-"
+
+config_options="--prefix=/usr --libdir=/usr/lib --enable-elf-shlibs --disable-testio-debug --disable-debugfs --disable-rpath --with-systemd-unit-dir=no --with-udev-rules-dir=no --with-crond-dir=no"
+
