@@ -1,4 +1,4 @@
-.PHONY: %-build build %-nconfig %-menuconfig patch %-clean clean help
+.PHONY: %-build build %-nconfig %-menuconfig patch %-all-patch %-clean clean help
 
 ##@
 ##@ Build commands
@@ -48,7 +48,7 @@ else
 endif
 
 ##@
-##@ Patch command
+##@ Patch commands
 ##@
 
 patch: ##@ Patch submodules projects
@@ -64,6 +64,11 @@ ifdef reset
 else
 	$(error Please specify a patch command)
 endif
+
+%-all-patch: ##@ Patch all submodules projects
+           ##@ e.g. make apply-all-patch / make export-all-patch / make reset-all-patch
+	@./tools/patch.py --$* kernel
+	@./tools/patch.py --$* rootfs
 
 ##@
 ##@ Clean build files commands
