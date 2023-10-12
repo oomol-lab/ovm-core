@@ -17,15 +17,15 @@ esac
 [ x"$tty" = x ] && tty="ttyS0"
 
 mkinitrd() {
-        local work="$1"
+    local work="$1"
 
-        cd $work; find . | cpio -o -H newc | gzip -c > "$OUT"/initrd-$A.gz
+    cd $work; find . | cpio -o -H newc | gzip -c > "$OUT"/initrd-$A.gz
 
-        printf "Initramfs file has been generated : "
+    printf "Initramfs file has been generated : "
 
     ls "$OUT"/initrd-$A.gz
 
-        printf "\n"
+    printf "\n"
 
     sleep 3
 

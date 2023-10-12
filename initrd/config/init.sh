@@ -238,4 +238,3 @@ if [ -f /mnt/sbin/init ] && [ -f /mnt/etc/hosts ] && [ -f /mnt/etc/hostname ] \
 #	umount /mnt
 #   _boot_to_shell
 fi
-

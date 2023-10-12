@@ -5,7 +5,7 @@ set -o errexit
 set -o errtrace
 
 if alias -p | grep -E "alias (cp|mv|which)" >/dev/null; then
-           unalias cp
+    unalias cp
     unalias mv
     unalias which
 fi

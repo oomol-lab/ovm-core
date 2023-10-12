@@ -1,41 +1,3 @@
-#!/bin/bash
-#
-# ## musl-toolchain
-#
-# musl-libc GCC cross compiler toolchain bootstrap script
-#
-# Usage: ./musl-toolchain <arch> [gcc version] [linux version] [fast|all]
-#
-# This script by default builds cross compilers for the supported
-# target architectures. If the optional "native-cross" option is
-# given, then in addition to building a cross compiler for the
-# target, the script will use the target cross compiler to build
-# a native compiler for the target architecture linked with the
-# target architecture's musl C library. The native compiler is
-# installed into ${SYSROOT}/usr/bin
-#
-# ## Supported architectures:
-#
-# - x86_64
-# - aarch64
-#
-# ## Directory layout
-#
-# - ${toolchain_prefix}/${ARCH}-${gcc_version}
-#   - bin/
-#     - {$triple}-{as,ld,gcc,g++,strip,objdump} # host binaries
-#   - ${triple}                                 # sysroot
-#     - include                                 # target headers
-#     - lib                                     # target libraries
-#     - usr
-#       - lib -> ../lib
-#       - bin
-#         - {as,ld,gcc,g++,strip,objdump}       # target binaries
-#
-
-# 脚本版本跟随内核版本
-VERSION=v6
-
 case "$1" in
     x86_64)
         ARCH=x86_64
@@ -61,10 +23,8 @@ esac
 
 set -e
 
-# 设置顶层工作目录
 TOPDIR=$(pwd)
 
-# 定义工具链所需包的版本
 gmp_version=6.3.0
 mpc_version=1.3.1
 mpfr_version=4.2.1
@@ -80,17 +40,17 @@ require_list="gmp mpc mpfr isl cloog binutils gcc glibc musl linux"
 
 test -f musl-cross.conf && source musl-cross.conf
 
-# 定义目标工具链的目录前缀
-# 这个目录用于支持多版本和多架构工具链共存
+# Define the directory prefix for the target toolchain
+# This directory is used to support the coexistence of multiple versions and multiple architectures of toolchains
 toolchain_prefix="${TOPDIR}/toolchain"
 
-# 编译软件用到的核心变量
+# Core variables used in compiling
 PREFIX="${toolchain_prefix}/${ARCH}-${gcc_version}"
 TRIPLE="${ARCH}-linux-musl${SUFFIX}"
 SYSROOT="${PREFIX}/${TARGET:=$TRIPLE}"
 CROSS_DIR="${TOPDIR}/crosstmp"
 
-# 临时交叉工具链的绝对路径目录
+# The absolute path directory of the temporary cross toolchain
 SRC_DIR="${CROSS_DIR}"/src
 BUILD_DIR="${CROSS_DIR}"/build
 STAMPS_DIR="${CROSS_DIR}"/stamps
@@ -98,8 +58,6 @@ ARCHIVE_DIR="${CROSS_DIR}"/archives
 
 test -f "${PREFIX}/bootstrap.conf" && exit 0
 
-# 从命令行读取需要下载的GCC版本和Linux版本
-# 如果提供了，就替换配置文件和预设的版本值
 if [ $# -gt 1 ]; then
     shift
 
