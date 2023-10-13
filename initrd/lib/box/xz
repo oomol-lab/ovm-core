@@ -1,0 +1,6 @@
+patches=""
+
+export CROSS_COMPILE="$TGT-"
+
+config_options="--prefix=/usr --libdir=/usr/lib"
+

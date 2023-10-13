@@ -1,0 +1,14 @@
+patches=""
+
+export CROSS_COMPILE="$TGT-"
+
+export ARCH
+
+config_options="--prefix=/usr --syslibdir=/usr/lib --disable-gcc-wrapper"
+
+stage() {
+	mkdir -p "$tmp"/usr/bin
+
+	ln -s ../lib/libc.so "$tmp"/usr/bin/ldd
+	ln -sf libc.so "$tmp"/usr/lib/ld-musl-$A.so.1
+}
