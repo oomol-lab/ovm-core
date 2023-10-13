@@ -22,9 +22,6 @@ export CFLAGS
 
 . "${top}"/lib/misc.bash
 
-# 每一个build-scripts和cross-scripts目录里的脚本都继承了下面的函数方法
-# 并且通过重写方法实现继承封装
-
 state() {
     local latest
 

@@ -64,8 +64,8 @@ export A TGT ARCH STAGEFS ROOTFS CROSSTOOL
 . "${DIR}"/lib/host_deps.bash
 
 if [ "$SKIP" = "no" ]; then
-    # resolve_deps && printf "\n$(log_info 'Check dependent pkgs ok !')\n\n" || \
-    #     (log_error "Install toolchain's dependencies failed !" && exit 1)
+    resolve_deps && printf "\n$(log_info 'Check dependent pkgs ok !')\n\n" || \
+        (log_error "Install toolchain's dependencies failed !" && exit 1)
 
     (
         set -e
