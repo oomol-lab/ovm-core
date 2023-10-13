@@ -21,7 +21,7 @@ function _download() {
     local WGET_BIN WGET_CMD
 
     WGET_BIN=`which wget`
-    WGET_CMD="wget --show-progress -c -L -O"
+    WGET_CMD="wget --show-progress --inet4-only -c -L -O"
 
     echo "==> Trying download $url"
     if [[ x"$WGET_BIN" == x ]] then
@@ -65,7 +65,8 @@ function _fetch_one() {
     suffix=$(echo "$index" | cut -d# -f 3)
     file="${name}-${version}.${suffix}"
 
-    url=$(eval echo ${site%*/}/${file})
+    url="https://static.oomol.com/ovm/initrd-deps/${file}"
+    # url=$(eval echo ${site%*/}/${file})
     dest="${_SRCDIR}/${file}"
 
     if [ -f "$dest" ]; then

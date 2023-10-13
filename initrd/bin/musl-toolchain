@@ -11,13 +11,13 @@ case "$1" in
         ;;
     *)
         echo "Usage: $(basename $0) {x86_64|aarch64} [gcc version] [linux version]"
-	echo
-	echo -e "Example: $0 x86_64"
-	echo -e "     or: $0 x86_64 13.2.0"
-	echo -e "     or: $0 x86_64 13.2.0 6.5"
-	echo -e "     or: $0 x86_64 13.2.0 6.5 native-cross"
-	echo
-	echo "native-cross default disbaled . native-cross is used for building target machine compiler into \${SYSROOT}"
+        echo
+        echo -e "Example: $0 x86_64"
+        echo -e "     or: $0 x86_64 13.2.0"
+        echo -e "     or: $0 x86_64 13.2.0 6.5"
+        echo -e "     or: $0 x86_64 13.2.0 6.5 native-cross"
+        echo
+        echo "native-cross default disbaled . native-cross is used for building target machine compiler into \${SYSROOT}"
         exit 1
 esac
 
@@ -74,17 +74,26 @@ if [ $# -gt 1 ]; then
     fi
 fi
 
-# 各个组件的源码下载地址，定义为常量
-gmp_URL="http://ftpmirror.gnu.org/gmp/gmp-${gmp_version}.tar.xz"
-mpc_URL="http://ftpmirror.gnu.org/mpc/mpc-${mpc_version}.tar.gz"
-mpfr_URL="http://ftpmirror.gnu.org/mpfr/mpfr-${mpfr_version}.tar.xz"
-musl_URL="http://musl.libc.org/releases/musl-${musl_version}.tar.gz"
-glibc_URL="http://ftpmirror.gnu.org/glibc/glibc-${glibc_version}.tar.xz"
-isl_URL="http://gcc.gnu.org/pub/gcc/infrastructure/isl-${isl_version}.tar.bz2"
-gcc_URL="http://ftpmirror.gnu.org/gcc/gcc-${gcc_version}/gcc-${gcc_version}.tar.xz"
-binutils_URL="http://ftpmirror.gnu.org/binutils/binutils-${binutils_version}.tar.xz"
-cloog_URL="http://www.bastoul.net/cloog/pages/download/cloog-${cloog_version}.tar.gz"
-linux_URL="http://169.254.123.32:3000/linux-${linux_version}.tar.xz"
+# gmp_URL="http://ftpmirror.gnu.org/gmp/gmp-${gmp_version}.tar.xz"
+# mpc_URL="http://ftpmirror.gnu.org/mpc/mpc-${mpc_version}.tar.gz"
+# mpfr_URL="http://ftpmirror.gnu.org/mpfr/mpfr-${mpfr_version}.tar.xz"
+# musl_URL="http://musl.libc.org/releases/musl-${musl_version}.tar.gz"
+# glibc_URL="http://ftpmirror.gnu.org/glibc/glibc-${glibc_version}.tar.xz"
+# isl_URL="http://gcc.gnu.org/pub/gcc/infrastructure/isl-${isl_version}.tar.bz2"
+# gcc_URL="http://ftpmirror.gnu.org/gcc/gcc-${gcc_version}/gcc-${gcc_version}.tar.xz"
+# binutils_URL="http://ftpmirror.gnu.org/binutils/binutils-${binutils_version}.tar.xz"
+# cloog_URL="http://www.bastoul.net/cloog/pages/download/cloog-${cloog_version}.tar.gz"
+# linux_URL="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${linux_version}.tar.xz"
+gmp_URL="https://static.oomol.com/ovm/initrd-deps/gmp-${gmp_version}.tar.xz"
+mpc_URL="https://static.oomol.com/ovm/initrd-deps/mpc-${mpc_version}.tar.gz"
+mpfr_URL="https://static.oomol.com/ovm/initrd-deps/mpfr-${mpfr_version}.tar.xz"
+musl_URL="https://static.oomol.com/ovm/initrd-deps/musl-${musl_version}.tar.gz"
+glibc_URL="https://static.oomol.com/ovm/initrd-deps/glibc-${glibc_version}.tar.xz"
+isl_URL="https://static.oomol.com/ovm/initrd-deps/isl-${isl_version}.tar.bz2"
+gcc_URL="https://static.oomol.com/ovm/initrd-deps/gcc-${gcc_version}.tar.xz"
+binutils_URL="https://static.oomol.com/ovm/initrd-deps/binutils-${binutils_version}.tar.xz"
+cloog_URL="https://static.oomol.com/ovm/initrd-deps/cloog-${cloog_version}.tar.gz"
+linux_URL="https://static.oomol.com/ovm/initrd-deps/linux-${linux_version}.tar.xz"
 
 
 trap 'test -L "${toolchain_prefix}/${ARCH}" && unlink "${toolchain_prefix}/${ARCH}"' INT ERR TERM
@@ -137,12 +146,12 @@ fetch_source() {
         fi
 
         echo -e "==> Downloading $url\n"
-	wget --show-progress -c -L -O "${ARCHIVE_DIR}/$file" "$url"
+    wget --show-progress --inet4-only -c -L -O "${ARCHIVE_DIR}/$file" "$url"
     else
         echo -e "Package $name download url is not accessible"
-	echo -e "=> $url\n"
+        echo -e "=> $url\n"
 
-	return 1
+    return 1
     fi
 }
 

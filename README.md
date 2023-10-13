@@ -39,6 +39,8 @@ make build # or rootfs-amd64-build / rootfs-arm64-build / kernel-amd64-build / k
 │   └── ...
 ├── rootfs # Buildroot source code (submodule)
 │   └── ...
+├── initrd
+│   └── ... # Initrd source code
 ├── patches
 │   ├── kernel # Patches for kernel
 │   │   ├── .patches # Patch list
@@ -52,11 +54,16 @@ make build # or rootfs-amd64-build / rootfs-arm64-build / kernel-amd64-build / k
 │   │   │   └── .config # Linux kernel amd64 config
 │   │   └── arm64
 │   │       └── .config # Linux kernel arm64 config
-│   └── rootfs # Rootfs config
+│   ├── rootfs
+│   │   ├── amd64
+│   │   │   └── .config # Buildroot amd64 config
+│   │   └── arm64
+│   │       └── .config # Buildroot arm64 config
+│   └── initrd # Initrd build output
 │       ├── amd64
-│       │   └── .config # Buildroot amd64 config
+│       │   └── initrd.gz
 │       └── arm64
-│           └── .config # Buildroot arm64 config
+│           └── initrd.gz
 └── tools
     └── patch.py # Patch tool (./tools/patch.py -help)
 ```

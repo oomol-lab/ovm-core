@@ -4,13 +4,14 @@ set -e
 
 TOP=$(cd "$(dirname $0)"/..; pwd)
 
-OUT="${TOP}"/output/boot
+OUT=$(cd "${TOP}"/../arch/initrd; pwd)
 
 . "${TOP}"/lib/misc.bash
 
+_ARCH=amd64
 case "$1" in
-    aarch64) tty="ttyAMA0";;
-    x86_64) tty="ttyS0";;
+    aarch64) _ARCH=arm64; tty="ttyAMA0";;
+    x86_64) _ARCH=amd64; tty="ttyS0";;
     *) tty="ttyS0"
 esac
 
@@ -19,11 +20,11 @@ esac
 mkinitrd() {
     local work="$1"
 
-    cd $work; find . | cpio -o -H newc | gzip -c > "$OUT"/initrd-$A.gz
+    cd $work; find . | cpio -o -H newc | gzip -c > "$OUT/$_ARCH"/initrd.gz
 
     printf "Initramfs file has been generated : "
 
-    ls "$OUT"/initrd-$A.gz
+    ls "$OUT/$_ARCH"/initrd.gz
 
     printf "\n"
 
