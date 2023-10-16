@@ -3,6 +3,7 @@
 
 arch/kernel/*
 arch/rootfs/*
-arch/initrd/*/*.gz
+arch/initrd/*
 !arch/kernel/*/.config
 !arch/rootfs/*/.config
+!arch/initrd/*/.keep

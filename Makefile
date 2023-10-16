@@ -1,25 +1,45 @@
 .PHONY: %-build build %-nconfig %-menuconfig patch %-all-patch %-clean clean help
 
+ROOTDIR := $(realpath .)
+
 ##@
 ##@ Build commands
 ##@
 
-%-build: ##@ Build linux kernel or rootfs 
-         ##@ e.g. rootfs-amd64-build / rootfs-arm64-build / kernel-amd64-build / kernel-arm64-build
+%-build: ##@ Build linux kernel or rootfs or initrd. e.g.
+         ##@ rootfs-amd64-build / rootfs-arm64-build
+         ##@ kernel-amd64-build / initrd-arm64-build
+         ##@ initrd-amd64-build / initrd-arm64-build
 	$(eval _DIR := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
-ifeq ($(word 2, $(subst -, ,$*)),arm64)
-	$(MAKE) -C arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- build
-else
-	$(MAKE) -C arch/$(_DIR)/$(_ARCH) build
-endif
+	@case $(_DIR) in \
+		rootfs) \
+			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) build \
+			;; \
+		kernel) \
+			if [ $(_ARCH) == arm64 ]; then \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- build; \
+			else \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 build; \
+			fi; \
+			;; \
+		initrd) \
+			$(MAKE) -C initrd O=$(ROOTDIR)/arch/initrd/$(_ARCH) $(_ARCH)-build \
+			;; \
+		*) \
+			printf "Please specify a build command\n" \
+			exit 1 \
+			;; \
+		esac \
 
 build: ##@ Build all arch linux kernel and rootfs
 	$(MAKE) kernel-amd64-build
 	$(MAKE) kernel-arm64-build
 	$(MAKE) rootfs-amd64-build
 	$(MAKE) rootfs-arm64-build
+	$(MAKE) initrd-amd64-build
+	$(MAKE) initrd-arm64-build
 
 ##@
 ##@ Config commands
@@ -31,9 +51,9 @@ build: ##@ Build all arch linux kernel and rootfs
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
 ifeq ($(word 2, $(subst -, ,$*)),arm64)
-	$(MAKE) -C arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig
+	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig
 else
-	$(MAKE) -C arch/$(_DIR)/$(_ARCH) nconfig
+	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) nconfig
 endif
 
 %-menuconfig: ##@ Use menuconfig configure linux kernel or rootfs
@@ -42,9 +62,9 @@ endif
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
 ifeq ($(word 2, $(subst -, ,$*)),arm64)
-	$(MAKE) -C arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
+	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
 else
-	$(MAKE) -C arch/$(_DIR)/$(_ARCH) menuconfig
+	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) menuconfig
 endif
 
 ##@
@@ -80,13 +100,15 @@ endif
          ##@ e.g. rootfs-amd64-clean / rootfs-arm64-clean / kernel-amd64-clean / kernel-arm64-clean
 	$(eval _DIR := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
-	$(MAKE) -C arch/$(_DIR)/$(_ARCH) clean
+	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) clean
 
 clean: ##@ Clean all build files
 	$(MAKE) kernel-amd64-clean
 	$(MAKE) kernel-arm64-clean
 	$(MAKE) rootfs-amd64-clean
 	$(MAKE) rootfs-arm64-clean
+	$(MAKE) initrd-arm64-clean
+	$(MAKE) initrd-arm64-clean
 
 ##@
 ##@ Misc commands
