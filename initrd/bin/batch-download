@@ -4,6 +4,12 @@ set -o braceexpand
 set -o errexit
 set -o errtrace
 
+if [ $# -lt 1 ]; then
+    echo "Error: missing arguments!"
+    exit 1
+fi
+DIR=$1
+
 if alias -p | grep -E "alias (cp|mv|which)" >/dev/null; then
     unalias cp
     unalias mv
@@ -11,9 +17,9 @@ if alias -p | grep -E "alias (cp|mv|which)" >/dev/null; then
 fi
 
 _top=$(cd $(dirname $0)/..; pwd)
-_DIR=$(readlink -n -f "$_top")
-_LIST="$_DIR/config/download.list"
-_SRCDIR="$_DIR/sources"
+_SOURCE_DIR=$(readlink -n -f "$_top")
+_LIST="$_SOURCE_DIR/config/download.list"
+_SRCDIR="$DIR/sources"
 
 function _download() {
     local url="$1"
@@ -83,8 +89,9 @@ function _fetch_one() {
     return
 }
 
+
 main() {
-    if [ "$#" -eq 0 ]; then
+    if [ "$#" -eq 1 ]; then
         while IFS= read -r line ; do
             [ -n "$line" ] && _fetch_one $line
         done < "$_LIST"
@@ -92,7 +99,7 @@ main() {
         exit 0
     fi
 
-    local target="$1"
+    local target="$2"
 
     local record="$(grep -E "^${target}\#" "$_LIST")"
 
@@ -100,4 +107,3 @@ main() {
 }
 
 main $@
-

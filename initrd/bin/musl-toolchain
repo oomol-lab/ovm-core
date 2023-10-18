@@ -1,29 +1,27 @@
-case "$1" in
-    x86_64)
-        ARCH=x86_64
-        LINUX_ARCH=x86
-        WITHARCH=--with-arch-64=core2
-        ;;
-    aarch64)
-        ARCH=aarch64
-        LINUX_ARCH=arm64
-        WITHARCH=--with-arch=armv8-a
-        ;;
-    *)
-        echo "Usage: $(basename $0) {x86_64|aarch64} [gcc version] [linux version]"
-        echo
-        echo -e "Example: $0 x86_64"
-        echo -e "     or: $0 x86_64 13.2.0"
-        echo -e "     or: $0 x86_64 13.2.0 6.5"
-        echo -e "     or: $0 x86_64 13.2.0 6.5 native-cross"
-        echo
-        echo "native-cross default disbaled . native-cross is used for building target machine compiler into \${SYSROOT}"
-        exit 1
-esac
+if [ $# -lt 2 ]; then
+    echo "Error: missing arguments!"
+    exit 1
+else
+    case $1 in
+        x86_64)
+            ARCH=x86_64
+            LINUX_ARCH=x86
+            WITHARCH=--with-arch-64=core2
+            ;;
+        aarch64)
+            ARCH=aarch64
+            LINUX_ARCH=arm64
+            WITHARCH=--with-arch=armv8-a
+            ;;
+        *)
+            echo "arch error"
+            exit 1
+    esac
+fi
 
 set -e
 
-TOPDIR=$(pwd)
+TOPDIR=$2
 
 gmp_version=6.3.0
 mpc_version=1.3.1
@@ -38,15 +36,13 @@ linux_version=6.1.50
 
 require_list="gmp mpc mpfr isl cloog binutils gcc glibc musl linux"
 
-test -f musl-cross.conf && source musl-cross.conf
-
 # Define the directory prefix for the target toolchain
 # This directory is used to support the coexistence of multiple versions and multiple architectures of toolchains
 toolchain_prefix="${TOPDIR}/toolchain"
 
 # Core variables used in compiling
-PREFIX="${toolchain_prefix}/${ARCH}-${gcc_version}"
-TRIPLE="${ARCH}-linux-musl${SUFFIX}"
+PREFIX="${toolchain_prefix}/gcc-${gcc_version}"
+TRIPLE="${ARCH}-linux-musl"
 SYSROOT="${PREFIX}/${TARGET:=$TRIPLE}"
 CROSS_DIR="${TOPDIR}/crosstmp"
 
@@ -57,22 +53,6 @@ STAMPS_DIR="${CROSS_DIR}"/stamps
 ARCHIVE_DIR="${CROSS_DIR}"/archives
 
 test -f "${PREFIX}/bootstrap.conf" && exit 0
-
-if [ $# -gt 1 ]; then
-    shift
-
-    rtcode=$(check_http_code "https://ftp.gnu.org/gnu/gcc/gcc-$1/")
-    if [ "$rtcode" = "200" ]; then
-	gcc_version="$1"
-        shift
-    fi
-
-    rtcode=$(check_http_code "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tag/?h=v$1")
-    if [ "$rtcode" = "200" ]; then
-        linux_version="$1"
-        shift
-    fi
-fi
 
 # gmp_URL="http://ftpmirror.gnu.org/gmp/gmp-${gmp_version}.tar.xz"
 # mpc_URL="http://ftpmirror.gnu.org/mpc/mpc-${mpc_version}.tar.gz"
@@ -96,7 +76,7 @@ cloog_URL="https://static.oomol.com/ovm/initrd-deps/cloog-${cloog_version}.tar.g
 linux_URL="https://static.oomol.com/ovm/initrd-deps/linux-${linux_version}.tar.xz"
 
 
-trap 'test -L "${toolchain_prefix}/${ARCH}" && unlink "${toolchain_prefix}/${ARCH}"' INT ERR TERM
+trap 'test -L "${toolchain_prefix}/gcc" && unlink "${toolchain_prefix}/gcc"' INT ERR TERM
 
 make_directories() {
     test -d "${SRC_DIR}" || mkdir -p "${SRC_DIR}"
@@ -490,24 +470,8 @@ build_gcc_stage1    host "${PREFIX}" / transform-name
 build_musl
 build_gcc_stage2    host "${PREFIX}" / transform-name
 
-#
-# build musl libc toolchain for target
-#
-
-if [ "$1" = "native-cross" ]; then
-    export PATH="${PREFIX}"/bin:${PATH}
-
-    build_gmp           "${ARCH}" --host="${TRIPLE}"
-    build_mpfr          "${ARCH}" --host="${TRIPLE}"
-    build_mpc           "${ARCH}" --host="${TRIPLE}"
-    build_isl           "${ARCH}" --host="${TRIPLE}"
-    build_cloog         "${ARCH}" --host="${TRIPLE}"
-    build_binutils      "${ARCH}" /usr "${SYSROOT}" '' --host="${TRIPLE}"
-    build_gcc_stage2    "${ARCH}" /usr "${SYSROOT}" '' --host="${TRIPLE}"
-fi
-
 echo "Finish building cross toolchain works !"; echo
-test -L "${toolchain_prefix}/${ARCH}" || ln -snf "${ARCH}-${gcc_version}" "${toolchain_prefix}/${ARCH}"
+test -L "${toolchain_prefix}/gcc" || ln -snf "gcc-${gcc_version}" "${toolchain_prefix}/gcc"
 cd "${TOPDIR}" && clean_tmpdir
 
 echo "export PATH='${SYSROOT}'/bin:\$PATH" > "$PREFIX/bootstrap.conf"

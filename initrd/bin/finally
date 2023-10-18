@@ -4,9 +4,12 @@ set -e
 
 TOP=$(cd "$(dirname $0)"/..; pwd)
 
-OUT=$(cd "${TOP}"/../arch/initrd; pwd)
-
 . "${TOP}"/lib/misc.bash
+
+if [ $# -lt 2 ]; then
+    echo "Error: missing arguments!"
+    exit 1
+fi
 
 _ARCH=amd64
 case "$1" in
@@ -14,20 +17,22 @@ case "$1" in
     x86_64) _ARCH=amd64; tty="ttyS0";;
     *) tty="ttyS0"
 esac
+OUT=$2/output/boot
 
 [ x"$tty" = x ] && tty="ttyS0"
 
 mkinitrd() {
     local work="$1"
 
-    cd $work; find . | cpio -o -H newc | gzip -c > "$OUT/$_ARCH"/initrd.gz
+    cd $work; find . | cpio -o -H newc | gzip -c > "$OUT"/initrd.gz
 
     printf "Initramfs file has been generated : "
 
-    ls "$OUT/$_ARCH"/initrd.gz
+    ls "$OUT"/initrd.gz
 
     printf "\n"
 
+    # gzip may have asynchronous IO, which can cause failure if not slept.
     sleep 3
 
     return

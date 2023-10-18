@@ -1,35 +1,27 @@
-CWD=$(shell pwd)
+.PHONY: %-build clean
 
-arm64-build:
-	@bash ./bootstrap.bash arm64
+# In initrd, we use the make command to build other dependencies.
+# At this point, it is necessary to ensure that MAKEOVERRIDES does not contain the O variable,
+# otherwise the sub-make will use the incorrect value of the O variable.
+# Ref: https://stackoverflow.com/a/24251579/6596777
+MAKEOVERRIDES := $(filter-out O=%,$(MAKEOVERRIDES))
+unexport O
 
-amd64-build:
-	@bash ./bootstrap.bash amd64
+err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
-rmstat:
-	@printf "\n"
-	rm -rf "$(CWD)"/states/cross-*
-	rm -rf "$(CWD)"/states/await-*
-	rm -rf "$(CWD)"/states/box-*
-	@printf "\n"
+override O := $(realpath $(patsubst %/,%,$(patsubst %.,%,$(O))))
+override O := $(call err_if_empty,O)
 
-rmcross:
-	@printf "=> Delete cross toolchain temp folders\n"
-	rm -rf "$(CWD)"/crosstmp/archives/*
-	rm -rf "$(CWD)"/crosstmp/stamps/*
-	rm -rf "$(CWD)"/crosstmp/build/*
-	rm -rf "$(CWD)"/crosstmp/src/*
+%-build:
+	@bash ./bootstrap.bash $* $(O)
 
-clean: rmstat rmcross
-	@printf "Current work dir $(CWD)\n\n"
-	@printf "=> Delete work directory:\n"
-	rm -rf "$(CWD)"/work/*
-
-	@printf "=> Delete out sysroot files:\n"
-	rm -rf "$(CWD)"/output/*
-
-	@printf "=> Delete toolchain tmp files:\n"
-	rm -rf "$(CWD)"/toolchain/*
-	rm -f "$(CWD)"/context.log
+clean:
+	rm -rf $(O)/states
+	rm -rf $(O)/crosstmp
+	rm -rf $(O)/work
+	rm -rf $(O)/output
+	rm -rf $(O)/toolchain
+	rm -rf $(O)/sources
+	rm -rf $(O)/context.log
 
 	@printf "\nClean workspace finish!\n"

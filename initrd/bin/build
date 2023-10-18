@@ -5,6 +5,7 @@ set -o errexit
 set -o errtrace
 
 export A
+export DIR
 export TGT
 export HOST
 export ROOTFS
@@ -16,8 +17,8 @@ export CFLAGS
 
 : ${top:=`pwd`}
 : ${out:="$ROOTFS"}
-: ${work:=$top/work}
-: ${srcdir:=$top/sources}
+: ${work:=$DIR/work}
+: ${srcdir:=$DIR/sources}
 : ${patchdir:=$top/patches}
 
 . "${top}"/lib/misc.bash
@@ -25,12 +26,12 @@ export CFLAGS
 state() {
     local latest
 
-    if IPS= grep -Eo "^$name$" "$top/states/$step-$A" >/dev/null; then
+    if IPS= grep -Eo "^$name$" "$DIR/states/$step" >/dev/null; then
         log_info "==> Ignore $name which been built ."
         exit 0
     fi
 
-    latest=$(cat "$top/states/await-$A")
+    latest=$(cat "$DIR/states/await")
     if [ -n "$latest" ]; then
         if [[ "$latest" == "$name" ]]; then
             section "==> Continue build $name ..."
@@ -41,11 +42,11 @@ state() {
     fi
 
     section "==> Building $name ..."
-    printf "$name" > "$top/states/await-$A"
+    printf "$name" > "$DIR/states/await"
 }
 
 fetch() {
-    test -e "$srcdir/$src" || batch-download "$name"
+    test -e "$srcdir/$src" || batch-download "$DIR" "$name"
 }
 
 unpack() {
@@ -124,10 +125,10 @@ _suffix=$(echo "$_key" | cut -d# -f3)
     cd "$top"
     rm -rf "$work/$unpack"
 
-    printf "" > "$top/states/await-$A"
+    printf "" > "$DIR/states/await"
 
     echo
-    echo "$name" >> "$top/states/$step-$A"
+    echo "$name" >> "$DIR/states/$step"
     section "==> Build target $name ok !"
 )
 
