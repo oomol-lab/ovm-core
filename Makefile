@@ -15,7 +15,7 @@ ROOTDIR := $(realpath .)
 
 	@case $(_DIR) in \
 		rootfs) \
-			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) build \
+			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) all \
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
