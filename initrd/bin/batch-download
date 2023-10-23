@@ -30,7 +30,7 @@ function _download() {
     WGET_CMD="wget --show-progress --inet4-only -c -L -O"
 
     echo "==> Trying download $url"
-    if [[ x"$WGET_BIN" == x ]] then
+    if [[ x"$WGET_BIN" == x ]]; then
         echo "wget command not found"
         return 1
     fi
