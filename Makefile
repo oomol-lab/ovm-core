@@ -19,9 +19,9 @@ ROOTDIR := $(realpath .)
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- build; \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- all; \
 			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 build; \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 all; \
 			fi; \
 			;; \
 		initrd) \
