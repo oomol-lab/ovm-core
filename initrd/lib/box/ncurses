@@ -3,7 +3,7 @@ patches=""
 config() {
     unset CROSS_COMPILE
 
-    mkdir build
+    mkdir -p build
     pushd build
     LDFLAGS="-s" CFLAGS="-O2" CPPFLAGS="-O2" CXXFLAGS="-O2" CC=gcc AR=ar STRIP=strip ../configure --without-debug
     CC=gcc make -C include

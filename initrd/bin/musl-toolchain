@@ -168,7 +168,7 @@ build_gmp() {
 
     test -f "${STAMPS_DIR}"/lib-gmp-${host} || (
         set -e
-        test -d "${BUILD_DIR}"/gmp-${host} || mkdir "${BUILD_DIR}"/gmp-${host}
+        test -d "${BUILD_DIR}"/gmp-${host} || mkdir -p "${BUILD_DIR}"/gmp-${host}
         cd "${BUILD_DIR}"/gmp-${host}
         CFLAGS=-fPIE "${SRC_DIR}"/gmp-${gmp_version}/configure \
             --disable-shared \
@@ -184,7 +184,7 @@ build_mpfr() {
 
     test -f "${STAMPS_DIR}"/lib-mpfr-${host} || (
         set -e
-        test -d "${BUILD_DIR}"/mpfr-${host} || mkdir "${BUILD_DIR}"/mpfr-${host}
+        test -d "${BUILD_DIR}"/mpfr-${host} || mkdir -p "${BUILD_DIR}"/mpfr-${host}
         cd "${BUILD_DIR}"/mpfr-${host}
         CFLAGS=-fPIE "${SRC_DIR}"/mpfr-${mpfr_version}/configure \
             --disable-shared \
@@ -201,7 +201,7 @@ build_mpc() {
 
     test -f "${STAMPS_DIR}"/lib-mpc-${host} || (
         set -e
-        test -d "${BUILD_DIR}"/mpc-${host} || mkdir "${BUILD_DIR}"/mpc-${host}
+        test -d "${BUILD_DIR}"/mpc-${host} || mkdir -p "${BUILD_DIR}"/mpc-${host}
         cd "${BUILD_DIR}"/mpc-${host}
         CFLAGS=-fPIE "${SRC_DIR}"/mpc-${mpc_version}/configure \
             --disable-shared \
@@ -220,7 +220,7 @@ build_isl() {
     if [ "${build_graphite}" = "yes" ]; then
         test -f "${STAMPS_DIR}"/lib-isl-${host} || (
             set -e
-            test -d "${BUILD_DIR}"/isl-${host} || mkdir "${BUILD_DIR}"/isl-${host}
+            test -d "${BUILD_DIR}"/isl-${host} || mkdir -p "${BUILD_DIR}"/isl-${host}
             cd "${BUILD_DIR}"/isl-${host}
             CFLAGS=-fPIE "${SRC_DIR}"/isl-${isl_version}/configure \
                 --disable-shared \
@@ -239,7 +239,7 @@ build_cloog() {
     if [ "${build_graphite}" = "yes" ]; then
         test -f "${STAMPS_DIR}"/lib-cloog-${host} || (
             set -e
-            test -d "${BUILD_DIR}"/cloog-${host} || mkdir "${BUILD_DIR}"/cloog-${host}
+            test -d "${BUILD_DIR}"/cloog-${host} || mkdir -p "${BUILD_DIR}"/cloog-${host}
             cd "${BUILD_DIR}"/cloog-${host}
             CFLAGS=-fPIE "${SRC_DIR}"/cloog-${cloog_version}/configure \
                 --disable-shared \
@@ -261,7 +261,7 @@ build_binutils() {
 
     test -f "${STAMPS_DIR}"/binutils-${host}-${ARCH} || (
         set -e
-        test -d "${BUILD_DIR}"/binutils-${host}-${ARCH} || mkdir "${BUILD_DIR}"/binutils-${host}-${ARCH}
+        test -d "${BUILD_DIR}"/binutils-${host}-${ARCH} || mkdir -p "${BUILD_DIR}"/binutils-${host}-${ARCH}
         cd "${BUILD_DIR}"/binutils-${host}-${ARCH}
         CFLAGS=-fPIE "${SRC_DIR}"/binutils-${binutils_version}/configure \
             --prefix="${prefix}" \
@@ -334,7 +334,7 @@ build_gcc_stage1() {
 
     test -f "${STAMPS_DIR}"/gcc-stage1-${host}-${ARCH} || (
         set -e
-        test -d "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH} || mkdir "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH}
+        test -d "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH} || mkdir -p "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH}
         cd "${BUILD_DIR}"/gcc-stage1-${host}-${ARCH}
         CFLAGS=-fPIE "${SRC_DIR}"/gcc-${gcc_version}/configure \
             --prefix="${prefix}" \
@@ -399,7 +399,7 @@ build_gcc_stage2() {
 
     test -f "${STAMPS_DIR}"/gcc-stage2-${host}-${ARCH} || (
         set -e
-        test -d "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH} || mkdir "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH}
+        test -d "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH} || mkdir -p "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH}
         cd "${BUILD_DIR}"/gcc-stage2-${host}-${ARCH}
         CFLAGS=-fPIE "${SRC_DIR}"/gcc-${gcc_version}/configure \
             --prefix="${prefix}" \
