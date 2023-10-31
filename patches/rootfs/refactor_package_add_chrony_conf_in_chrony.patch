@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Black-Hole1 <bh@bugs.cc>
+Date: Tue, 31 Oct 2023 15:16:35 +0800
+Subject: refactor(package): add chrony.conf in chrony
+
+If the /etc/chrony.conf file is missing, chrony.service will fail to start.
+
+diff --git a/package/chrony/chrony.conf b/package/chrony/chrony.conf
+new file mode 100644
+index 0000000000000000000000000000000000000000..f2eefe8cfabe977670a3d4ed720a4f699189eee6
+--- /dev/null
++++ b/package/chrony/chrony.conf
+@@ -0,0 +1,9 @@
++server pool.ntp.org iburst prefer minpoll 3 maxpoll 6
++server time.apple.com iburst
++server time.windows.com iburst
++
++driftfile /var/lib/chrony/drift
++
++makestep 1.0 3
++
++rtcsync
+diff --git a/package/chrony/chrony.mk b/package/chrony/chrony.mk
+index 86f23d9060561c03f93b64321c9c59b7dc0a500f..7d70d94789fd8e8746283211c4379c846c3b7bbd 100644
+--- a/package/chrony/chrony.mk
++++ b/package/chrony/chrony.mk
+@@ -71,6 +71,8 @@ endef
+ 
+ define CHRONY_INSTALL_TARGET_CMDS
+ 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR="$(TARGET_DIR)" install
++	$(INSTALL) -D -m 644 package/chrony/chrony.conf \
++		$(TARGET_DIR)/etc/chrony.conf
+ endef
+ 
+ define CHRONY_INSTALL_INIT_SYSV
