@@ -77,9 +77,6 @@ index 0000000000000000000000000000000000000000..e15daddd7b7572d6713534412d4ec0e3
 +	$(INSTALL) -D -m 755 $(@D)/bin/vm $(TARGET_DIR)/usr/bin/gvforwarder
 +	$(INSTALL) -D -m 644 $(GVFORWARDER_PKGDIR)/systemd/gvforwader.service \
 +		$(TARGET_DIR)/etc/systemd/system/
-+
-+	$(INSTALL) -D -m 644 $(GVFORWARDER_PKGDIR)/wsl.conf \
-+		$(TARGET_DIR)/etc/wsl.conf
 +endef
 +
 +$(eval $(golang-package))
@@ -104,13 +101,4 @@ index 0000000000000000000000000000000000000000..9ce72adac13560b2bdc4d9562a2532cb
 +
 +[Install]
 +WantedBy=default.target
-\ No newline at end of file
-diff --git a/package/gvforwarder/wsl.conf b/package/gvforwarder/wsl.conf
-new file mode 100644
-index 0000000000000000000000000000000000000000..c55b3816c41dcc897aac69dad9893030db26d7e0
---- /dev/null
-+++ b/package/gvforwarder/wsl.conf
-@@ -0,0 +1,2 @@
-+[boot]
-+systemd=true
 \ No newline at end of file
