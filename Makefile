@@ -50,22 +50,44 @@ build: ##@ Build all arch linux kernel and rootfs
 	$(eval _DIR := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
-ifeq ($(word 2, $(subst -, ,$*)),arm64)
-	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig
-else
-	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) nconfig
-endif
+	@case $(_DIR) in \
+		rootfs) \
+			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) nconfig; \
+			;; \
+		kernel) \
+			if [ $(_ARCH) == arm64 ]; then \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig; \
+			else \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 nconfig; \
+			fi; \
+			;; \
+		*) \
+			printf "Please specify a build command\n" \
+			exit 1 \
+			;; \
+		esac \
 
 %-menuconfig: ##@ Use menuconfig configure linux kernel or rootfs
               ##@ e.g. rootfs-amd64-menuconfig / rootfs-arm64-menuconfig / kernel-amd64-menuconfig / kernel-arm64-menuconfig
 	$(eval _DIR := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
-ifeq ($(word 2, $(subst -, ,$*)),arm64)
-	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
-else
-	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) menuconfig
-endif
+	@case $(_DIR) in \
+		rootfs) \
+			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) menuconfig; \
+			;; \
+		kernel) \
+			if [ $(_ARCH) == arm64 ]; then \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig; \
+			else \
+				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 menuconfig; \
+			fi; \
+			;; \
+		*) \
+			printf "Please specify a build command\n" \
+			exit 1 \
+			;; \
+		esac \
 
 ##@
 ##@ Patch commands
