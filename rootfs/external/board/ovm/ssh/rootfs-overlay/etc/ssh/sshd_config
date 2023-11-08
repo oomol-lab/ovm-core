@@ -1,0 +1,12 @@
+PermitRootLogin yes
+PasswordAuthentication yes
+
+MaxAuthTries 100
+MaxSessions 100
+MaxStartups 100
+ClientAliveInterval 300
+ClientAliveCountMax 10
+
+AuthorizedKeysFile	.ssh/authorized_keys
+
+Subsystem	sftp	/usr/libexec/sftp-server

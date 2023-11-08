@@ -1,4 +1,4 @@
-.PHONY: %-build build %-nconfig %-menuconfig patch %-all-patch %-clean clean help
+.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help
 
 ROOTDIR := $(realpath .)
 
@@ -10,12 +10,12 @@ ROOTDIR := $(realpath .)
          ##@ rootfs-amd64-build / rootfs-arm64-build
          ##@ kernel-amd64-build / initrd-arm64-build
          ##@ initrd-amd64-build / initrd-arm64-build
-	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
-	@case $(_DIR) in \
+	@case $(_TARGET) in \
 		rootfs) \
-			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) all \
+			$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) all; \
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
@@ -25,7 +25,7 @@ ROOTDIR := $(realpath .)
 			fi; \
 			;; \
 		initrd) \
-			$(MAKE) -C initrd O=$(ROOTDIR)/arch/initrd/$(_ARCH) $(_ARCH)-build \
+			$(MAKE) -C initrd O=$(ROOTDIR)/arch/initrd/$(_ARCH) $(_ARCH)-build; \
 			;; \
 		*) \
 			printf "Please specify a build command\n" \
@@ -45,14 +45,22 @@ build: ##@ Build all arch linux kernel and rootfs
 ##@ Config commands
 ##@
 
+rootfs-%-defconfig: ##@ Use defconfig configure rootfs with specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) BR2_EXTERNAL=../external ovm_$(_ARCH)_defconfig;
+
+rootfs-%-savedefconfig: ##@ Save rootfs buildroot config to external
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) BR2_DEFCONFIG=../external/configs/ovm_$(_ARCH)_defconfig savedefconfig;
+
 %-nconfig: ##@ Use nconfig configure linux kernel or rootfs 
            ##@ e.g. rootfs-amd64-nconfig / rootfs-arm64-nconfig / kernel-amd64-nconfig / kernel-arm64-nconfig
-	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
-	@case $(_DIR) in \
+	@case $(_TARGET) in \
 		rootfs) \
-			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) nconfig; \
+			$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) nconfig; \
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
@@ -69,12 +77,12 @@ build: ##@ Build all arch linux kernel and rootfs
 
 %-menuconfig: ##@ Use menuconfig configure linux kernel or rootfs
               ##@ e.g. rootfs-amd64-menuconfig / rootfs-arm64-menuconfig / kernel-amd64-menuconfig / kernel-arm64-menuconfig
-	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
-	@case $(_DIR) in \
+	@case $(_TARGET) in \
 		rootfs) \
-			$(MAKE) -C rootfs O=$(ROOTDIR)/arch/rootfs/$(_ARCH) menuconfig; \
+			$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) menuconfig; \
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
@@ -89,30 +97,6 @@ build: ##@ Build all arch linux kernel and rootfs
 			;; \
 		esac \
 
-##@
-##@ Patch commands
-##@
-
-patch: ##@ Patch submodules projects
-       ##@ e.g. make patch apply=rootfs / make patch export=rootfs / make patch reset=kernel
-ifdef apply
-	@./tools/patch.py --apply $(apply)
-else
-    ifdef export
-		@./tools/patch.py --export $(export)
-    else
-        ifdef reset
-			@./tools/patch.py --reset $(reset)
-        else
-			$(error Please specify a patch command)
-        endif
-    endif
-endif
-
-%-all-patch: ##@ Patch all submodules projects
-           ##@ e.g. make apply-all-patch / make export-all-patch / make reset-all-patch
-	@./tools/patch.py --$* kernel
-	@./tools/patch.py --$* rootfs
 
 ##@
 ##@ Clean build files commands
@@ -120,9 +104,21 @@ endif
 
 %-clean: ##@ Clean linux kernel or rootfs build files with specified architecture
          ##@ e.g. rootfs-amd64-clean / rootfs-arm64-clean / kernel-amd64-clean / kernel-arm64-clean
-	$(eval _DIR := $(firstword $(subst -, ,$*)))
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
 	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
-	$(MAKE) -C $(_DIR) O=$(ROOTDIR)/arch/$(_DIR)/$(_ARCH) clean
+
+	@case $(_TARGET) in \
+		rootfs) \
+			$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) clean; \
+			;; \
+		kernel) \
+			$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/$(_ARCH) clean; \
+			;; \
+		*) \
+			printf "Please specify a clean command\n" \
+			exit 1 \
+			;; \
+		esac \
 
 clean: ##@ Clean all build files
 	$(MAKE) kernel-amd64-clean

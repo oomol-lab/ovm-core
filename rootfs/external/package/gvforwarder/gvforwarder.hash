@@ -1,0 +1,6 @@
+# From https://patch-diff.githubusercontent.com/raw/containers/gvisor-tap-vsock/pull/215.patch
+sha256  1908ab85a8f0325c6c4e96427e9628b9d9273ca15af2c60e71f3ac38ac25eaf5  215.patch
+
+# Locally computed:
+sha256  64de2a0223c2219a85d66ebb200c3d8b3501276754d7b0267435e81f40215e7d  gvforwarder-0.6.2.tar.gz
+sha256  cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  LICENSE

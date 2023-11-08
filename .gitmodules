@@ -1,5 +1,5 @@
 [submodule "rootfs"]
-	path = rootfs
+	path = rootfs/buildroot
 	url = https://gitlab.com/buildroot.org/buildroot.git
 [submodule "kernel"]
 	path = kernel
