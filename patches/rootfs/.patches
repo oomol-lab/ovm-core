@@ -1,7 +1,0 @@
-package_conmon_new_package.patch
-package_podman_new_package.patch
-refactor_package_improve_podman.patch
-feat_package_add_gvforwader.patch
-refactor_package_disable_ssh_service_when_vm_is_wsl.patch
-refactor_packages_improve_sshd_config.patch
-refactor_package_add_chrony_conf_in_chrony.patch
