@@ -1,4 +1,4 @@
-.PHONY: %-build build %-nconfig %-menuconfig %-clean clean help
+.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help
 
 ROOTDIR := $(realpath .)
 
