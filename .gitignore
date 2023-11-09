@@ -4,5 +4,4 @@
 arch/kernel/*
 arch/rootfs/*
 arch/initrd/*
-!arch/kernel/*/.config
 !arch/initrd/*/.keep

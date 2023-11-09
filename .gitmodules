@@ -2,5 +2,5 @@
 	path = rootfs/buildroot
 	url = https://gitlab.com/buildroot.org/buildroot.git
 [submodule "kernel"]
-	path = kernel
+	path = linux/kernel
 	url = git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
