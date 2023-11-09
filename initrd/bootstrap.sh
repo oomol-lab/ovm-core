@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -o errexit
+set -o pipefail
+set -o nounset
 set -o braceexpand
 
 export PATH=$(pwd)/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -19,6 +22,7 @@ else
         *) echo "Error: Incorrect arch"; exit 1;;
     esac
 fi
+mkdir -p "$2"
 DIR="$(cd $2; pwd)"
 
 mkdir -p "${DIR}"/{states,work,sources,toolchain,output,crosstmp}

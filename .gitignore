@@ -1,7 +1,4 @@
 .vscode
 .idea
 
-arch/kernel/*
-arch/rootfs/*
-arch/initrd/*
-!arch/initrd/*/.keep
+out/*
