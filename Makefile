@@ -19,9 +19,9 @@ ROOTDIR := $(realpath .)
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- all; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- all; \
 			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 all; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/amd64 all; \
 			fi; \
 			;; \
 		initrd) \
@@ -45,13 +45,58 @@ build: ##@ Build all arch linux kernel and rootfs
 ##@ Config commands
 ##@
 
-rootfs-%-defconfig: ##@ Use defconfig configure rootfs with specified architecture
-	$(eval _ARCH := $(firstword $(subst -, ,$*)))
-	$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) BR2_EXTERNAL=../external ovm_$(_ARCH)_defconfig;
+%-defconfig: ##@ Use defconfig configure linux kernel or rootfs
+             ##@ e.g. rootfs-amd64-defconfig / rootfs-arm64-defconfig / kernel-amd64-defconfig / kernel-arm64-defconfig
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
 
-rootfs-%-savedefconfig: ##@ Save rootfs buildroot config to external
-	$(eval _ARCH := $(firstword $(subst -, ,$*)))
-	$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) BR2_DEFCONFIG=../external/configs/ovm_$(_ARCH)_defconfig savedefconfig;
+	@case $(_TARGET) in \
+		rootfs) \
+			$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) BR2_EXTERNAL=../external ovm_$(_ARCH)_defconfig; \
+			;; \
+		kernel) \
+			mkdir -p $(ROOTDIR)/arch/kernel/$(_ARCH)/arch/$(_ARCH)/configs; \
+			if [ $(_ARCH) == arm64 ]; then \
+				mkdir -p $(ROOTDIR)/arch/kernel/$(_ARCH)/arch/arm64/configs/; \
+				cp $(ROOTDIR)/linux/external/configs/ovm_$(_ARCH)_defconfig $(ROOTDIR)/arch/kernel/$(_ARCH)/arch/arm64/configs/; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- ovm_$(_ARCH)_defconfig; \
+			else \
+				mkdir -p $(ROOTDIR)/arch/kernel/$(_ARCH)/arch/x86/configs/; \
+				cp $(ROOTDIR)/linux/external/configs/ovm_$(_ARCH)_defconfig $(ROOTDIR)/arch/kernel/$(_ARCH)/arch/x86/configs/; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/$(_ARCH) ovm_$(_ARCH)_defconfig; \
+			fi; \
+			;; \
+		*) \
+			printf "Please specify a defconfig command\n" \
+			exit 1 \
+			;; \
+		esac \
+
+
+%-savedefconfig: ##@ Use savedefconfig configure linux kernel or rootfs
+                 ##@ e.g. rootfs-amd64-savedefconfig / rootfs-arm64-savedefconfig / kernel-amd64-savedefconfig / kernel-arm64-savedefconfig
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+
+	@case $(_TARGET) in \
+		rootfs) \
+			$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) BR2_DEFCONFIG=../external/configs/ovm_$(_ARCH)_defconfig savedefconfig; \
+			echo "generate $(ROOTDIR)/rootfs/external/configs/ovm_$(_ARCH)_defconfig"; \
+			;; \
+		kernel) \
+			if [ $(_ARCH) == arm64 ]; then \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig; \
+			else \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/$(_ARCH) savedefconfig; \
+			fi; \
+			echo "generate $(ROOTDIR)/linux/external/configs/ovm_$(_ARCH)_defconfig"; \
+			mv $(ROOTDIR)/arch/kernel/$(_ARCH)/defconfig $(ROOTDIR)/linux/external/configs/ovm_$(_ARCH)_defconfig; \
+			;; \
+		*) \
+			printf "Please specify a savedefconfig command\n" \
+			exit 1 \
+			;; \
+		esac \
 
 %-nconfig: ##@ Use nconfig configure linux kernel or rootfs 
            ##@ e.g. rootfs-amd64-nconfig / rootfs-arm64-nconfig / kernel-amd64-nconfig / kernel-arm64-nconfig
@@ -64,13 +109,13 @@ rootfs-%-savedefconfig: ##@ Save rootfs buildroot config to external
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig; \
 			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 nconfig; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/amd64 nconfig; \
 			fi; \
 			;; \
 		*) \
-			printf "Please specify a build command\n" \
+			printf "Please specify a nconfig command\n" \
 			exit 1 \
 			;; \
 		esac \
@@ -86,13 +131,13 @@ rootfs-%-savedefconfig: ##@ Save rootfs buildroot config to external
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig; \
 			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/amd64 menuconfig; \
+				$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/amd64 menuconfig; \
 			fi; \
 			;; \
 		*) \
-			printf "Please specify a build command\n" \
+			printf "Please specify a menuconfig command\n" \
 			exit 1 \
 			;; \
 		esac \
@@ -112,7 +157,7 @@ rootfs-%-savedefconfig: ##@ Save rootfs buildroot config to external
 			$(MAKE) -C rootfs/buildroot O=$(ROOTDIR)/arch/rootfs/$(_ARCH) clean; \
 			;; \
 		kernel) \
-			$(MAKE) -C kernel O=$(ROOTDIR)/arch/kernel/$(_ARCH) clean; \
+			$(MAKE) -C linux/kernel O=$(ROOTDIR)/arch/kernel/$(_ARCH) clean; \
 			;; \
 		*) \
 			printf "Please specify a clean command\n" \
