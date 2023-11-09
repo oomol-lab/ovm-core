@@ -9,11 +9,10 @@ unexport O
 
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
-override O := $(realpath $(patsubst %/,%,$(patsubst %.,%,$(O))))
 override O := $(call err_if_empty,O)
 
 %-build:
-	@bash ./bootstrap.bash $* $(O)
+	./bootstrap.sh $* $(O)
 
 clean:
 	rm -rf $(O)/states
