@@ -71,4 +71,5 @@ make build # or rootfs-amd64-build / rootfs-arm64-build / kernel-amd64-build / k
 ### Version
 
 * Linux kernel: `v6.1.50`
-* Buildroot: `2023.05.2`
+* Buildroot: `2023.08.3`
+
