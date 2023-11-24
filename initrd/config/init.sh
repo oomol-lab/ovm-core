@@ -50,5 +50,8 @@ fi
 # mount data device to /var/lib/containers
 echo "/dev/vdc /var/lib/containers btrfs defaults 0 0" >> /mnt/overlay/etc/fstab
 
+mkdir -p /mnt/overlay/etc/containers
+echo "qemu" > /mnt/overlay/etc/containers/podman-machine
+
 umount -n /dev /sys /proc
 exec /bin/busybox switch_root /mnt/overlay "${init:-/sbin/init}"
