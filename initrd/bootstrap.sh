@@ -106,6 +106,7 @@ build lib/box/ncurses
 build lib/box/readline
 build lib/box/zstd
 build lib/box/util-linux
+build lib/box/vsock_guest_exec
 build lib/box/e2fsprogs
 build lib/box/btrfs-progs
 
