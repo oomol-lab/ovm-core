@@ -53,5 +53,7 @@ echo "/dev/vdc /var/lib/containers btrfs defaults 0 0" >> /mnt/overlay/etc/fstab
 mkdir -p /mnt/overlay/etc/containers
 echo "qemu" > /mnt/overlay/etc/containers/podman-machine
 
+vsock_guest_exec :1025 || true
+
 umount -n /dev /sys /proc
 exec /bin/busybox switch_root /mnt/overlay "${init:-/sbin/init}"
