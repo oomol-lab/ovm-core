@@ -10,3 +10,4 @@ RemainAfterExit=yes
 ExecStart=/bin/sh -c '. /opt/ready.command'
 [Install]
 WantedBy=default.target
+
