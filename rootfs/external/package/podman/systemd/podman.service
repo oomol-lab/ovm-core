@@ -10,7 +10,7 @@ Delegate=true
 Type=exec
 KillMode=process
 Environment=LOGGING="--log-level=info"
-ExecStart=/usr/bin/podman $LOGGING system service -t0 tcp://0.0.0.0:58125
+ExecStart=/usr/bin/podman $LOGGING system service
 
 [Install]
 WantedBy=default.target
