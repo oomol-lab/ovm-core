@@ -1,0 +1,12 @@
+[Unit]
+Requires=dev-virtio\\x2dports-vsock.device
+After=sshd.service podman.socket
+ConditionPathExists=/opt/ready.command
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '. /opt/ready.command'
+[Install]
+WantedBy=default.target
