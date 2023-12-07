@@ -1,0 +1,12 @@
+export PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR="${ROOTFS}/usr/lib"
+export CROSS_COMPILE="$TGT-"
+
+export libuuid_CFLAGS="-I${ROOTFS}/usr/include"
+export libuuid_LIBS="-L${ROOTFS}/usr/lib -luuid"
+
+prep() {
+    ./autogen.sh
+}
+
+config_options="--prefix=/usr --libdir=/usr/lib --enable-lz4 --disable-fuse --without-selinux"

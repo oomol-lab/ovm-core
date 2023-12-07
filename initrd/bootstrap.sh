@@ -109,6 +109,7 @@ build lib/box/util-linux
 build lib/box/vsock_guest_exec
 build lib/box/e2fsprogs
 build lib/box/btrfs-progs
+build lib/box/erofs-utils
 
 finally "$VM_HOST" "$DIR"
 
