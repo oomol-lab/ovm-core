@@ -1,9 +1,0 @@
-patches=""
-
-export CROSS_COMPILE="$TGT-"
-
-config() {
-	munge-config-sub $config_sub
-	./configure --static --prefix=/usr --libdir=/usr/lib --includedir=/usr/include
-}
-

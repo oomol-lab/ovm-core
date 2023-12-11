@@ -14,10 +14,6 @@ fail() {
     poweroff -f
 }
 
-# vda => rootfs
-# vdb => tmp(data will be cleared every time system start)
-# vdc => data
-
 if [ ! -e /dev/vdb ]; then
     fail "===> /dev/vdb not found!"
 fi;
@@ -25,6 +21,7 @@ fi;
 if [ ! -e /dev/vdc ]; then
     fail "===> /dev/vdc not found!"
 fi;
+
 
 # mount rootfs
 mount -n -m -t btrfs /dev/vda /mnt/rootfs
@@ -41,7 +38,7 @@ mount -n -t overlay overlay \
     -o lowerdir=/mnt/rootfs,upperdir=/mnt/tmpfs/upperdir,workdir=/mnt/tmpfs/workdir \
     /mnt/overlay
 
-# create data device if not fomatted
+create data device if not fomatted
 data_device="$(blkid /dev/vdc -t TYPE=btrfs || :)"
 if [ -z "$data_device" ]; then
 	mkfs.btrfs -q -f /dev/vdc
@@ -51,9 +48,10 @@ fi
 echo "/dev/vdc /var/lib/containers btrfs defaults 0 0" >> /mnt/overlay/etc/fstab
 
 mkdir -p /mnt/overlay/etc/containers
-echo "qemu" > /mnt/overlay/etc/containers/podman-machine
+echo "applehv" > /mnt/overlay/etc/containers/podman-machine
 
 vsock_guest_exec :1025 || true
 
 umount -n /dev /sys /proc
+
 exec /bin/busybox switch_root /mnt/overlay "${init:-/sbin/init}"
