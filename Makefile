@@ -55,7 +55,6 @@ build: ##@ Build all arch linux kernel and rootfs
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external rootfs_$(_ARCH)_defconfig; \
 			;; \
 		kernel) \
-			mkdir -p $(ROOTDIR)/out/kernel/$(_ARCH)/arch/$(_ARCH)/configs; \
 			if [ $(_ARCH) == arm64 ]; then \
 				mkdir -p $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
 				cp $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
