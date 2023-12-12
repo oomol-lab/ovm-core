@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -e
-
-if [ -e "${1:-config.sub}" ];then
-    sed -i 's/linux-gnu\* |/linux-gnu* | linux-musl* |/' "${1:-config.sub}"
-fi

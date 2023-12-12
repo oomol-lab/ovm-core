@@ -1,6 +1,0 @@
-patches="kbd-2.6.1"
-
-export CROSS_COMPILE="$TGT-"
-
-config_options="--prefix=/usr --libdir=/usr/lib --disable-vlock --datadir=/usr/share/kbd"
-

@@ -17,15 +17,15 @@ ROOTDIR := $(realpath .)
 		rootfs) \
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) all; \
 			;; \
+		initrd) \
+			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) all; \
+			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- all; \
 			else \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 all; \
 			fi; \
-			;; \
-		initrd) \
-			$(MAKE) -C initrd O=$(ROOTDIR)/out/initrd/$(_ARCH) $(_ARCH)-build; \
 			;; \
 		*) \
 			printf "Please specify a build command\n" \
@@ -53,6 +53,9 @@ build: ##@ Build all arch linux kernel and rootfs
 	@case $(_TARGET) in \
 		rootfs) \
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external rootfs_$(_ARCH)_defconfig; \
+			;; \
+		initrd) \
+			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external initrd_$(_ARCH)_defconfig; \
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
@@ -82,6 +85,10 @@ build: ##@ Build all arch linux kernel and rootfs
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) BR2_DEFCONFIG=$(ROOTDIR)/buildroot_external/configs/rootfs_$(_ARCH)_defconfig savedefconfig; \
 			echo "generate $(ROOTDIR)/buildroot_external/configs/rootfs_$(_ARCH)_defconfig"; \
 			;; \
+		initrd) \
+			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) BR2_DEFCONFIG=$(ROOTDIR)/buildroot_external/configs/initrd_$(_ARCH)_defconfig savedefconfig; \
+			echo "generate $(ROOTDIR)/buildroot_external/configs/initrd_$(_ARCH)_defconfig"; \
+			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig; \
@@ -106,6 +113,9 @@ build: ##@ Build all arch linux kernel and rootfs
 		rootfs) \
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) nconfig; \
 			;; \
+		initrd) \
+			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) nconfig; \
+			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig; \
@@ -127,6 +137,9 @@ build: ##@ Build all arch linux kernel and rootfs
 	@case $(_TARGET) in \
 		rootfs) \
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) menuconfig; \
+			;; \
+		initrd) \
+			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) menuconfig; \
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
@@ -155,11 +168,11 @@ build: ##@ Build all arch linux kernel and rootfs
 		rootfs) \
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) clean; \
 			;; \
+		initrd) \
+			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) clean; \
+			;; \
 		kernel) \
 			$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) clean; \
-			;; \
-		initrd) \
-			$(MAKE) -C initrd O=$(ROOTDIR)/out/initrd/$(_ARCH) clean; \
 			;; \
 		*) \
 			printf "Please specify a clean command\n" \

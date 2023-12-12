@@ -1,0 +1,6 @@
+config BR2_PACKAGE_VSOCK_GUEST_EXEC
+	bool "vsock-guest-exec"
+	help
+	  vsock exec gust
+
+	  https://github.com/oomol-lab/vsock-guest-exec
