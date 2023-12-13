@@ -38,7 +38,7 @@ mount -n -t overlay overlay \
     -o lowerdir=/mnt/rootfs,upperdir=/mnt/tmpfs/upperdir,workdir=/mnt/tmpfs/workdir \
     /mnt/overlay
 
-create data device if not fomatted
+# create data device if not fomatted
 data_device="$(blkid /dev/vdc -t TYPE=btrfs || :)"
 if [ -z "$data_device" ]; then
 	mkfs.btrfs -q -f /dev/vdc
