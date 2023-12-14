@@ -18,7 +18,7 @@ GVFORWARDER_PATCH = \
 
 define GVFORWARDER_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 755 $(@D)/bin/vm $(TARGET_DIR)/usr/bin/gvforwarder
-	$(INSTALL) -D -m 644 $(GVFORWARDER_PKGDIR)/systemd/gvforwader.service \
+	$(INSTALL) -D -m 644 $(GVFORWARDER_PKGDIR)/systemd/gvforwarder.service \
 		$(TARGET_DIR)/etc/systemd/system/
 endef
 
