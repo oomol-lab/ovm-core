@@ -24,7 +24,7 @@ fi;
 
 
 # mount rootfs
-mount -n -m -t btrfs /dev/vda /mnt/rootfs
+mount -n -m -t erofs /dev/vda /mnt/rootfs
 
 # force format vdb
 mkfs.btrfs -q -f /dev/vdb
