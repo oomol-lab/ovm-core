@@ -1,6 +1,7 @@
 [Unit]
-Requires=dev-virtio\\x2dports-vsock.device
-After=sshd.service podman.socket
+Requires=dev-virtio\\x2dports-vsock.device sys-devices-virtual-net-tap0.device
+Requires=sshd.service podman.socket gvforwarder.service
+After=sshd.service podman.socket gvforwarder.service sys-devices-virtual-net-tap0.device
 ConditionPathExists=/opt/ready.command
 OnFailure=emergency.target
 OnFailureJobMode=isolate

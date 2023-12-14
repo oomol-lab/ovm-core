@@ -1,7 +1,7 @@
 [Unit]
 Description=gvisor-tap-vsock Network Traffic Forwarder
-Requires=podman.service
-After=podman.service
+Requires=network.service
+After=network.service
 StartLimitIntervalSec=0
 ConditionVirtualization=!wsl
 
@@ -9,7 +9,7 @@ ConditionVirtualization=!wsl
 Type=simple
 Restart=on-failure
 ExecStop=/bin/kill -s TERM $MAINPID
-ExecStart=/usr/bin/gvforwarder
+ExecStart=/usr/bin/gvforwarder -iface tap0
 
 [Install]
 WantedBy=default.target
