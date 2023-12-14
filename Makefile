@@ -18,7 +18,7 @@ ROOTDIR := $(realpath .)
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) all; \
 			;; \
 		initrd) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) all; \
+			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) ROOTFS_CPIO_IMAGE_NAME=initrd all; \
 			;; \
 		kernel) \
 			if [ $(_ARCH) == arm64 ]; then \
