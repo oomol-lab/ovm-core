@@ -33,13 +33,19 @@ ROOTDIR := $(realpath .)
 			;; \
 		esac \
 
-build: ##@ Build all arch linux kernel and rootfs
+build-amd64: ##@ Build all amd64
 	$(MAKE) kernel-amd64-build
-	$(MAKE) kernel-arm64-build
 	$(MAKE) rootfs-amd64-build
-	$(MAKE) rootfs-arm64-build
 	$(MAKE) initrd-amd64-build
+
+build-arm64: ##@ Build all arm64
+	$(MAKE) kernel-arm64-build
+	$(MAKE) rootfs-arm64-build
 	$(MAKE) initrd-arm64-build
+
+build: ##@ Build all arch linux kernel and rootfs and initrd
+	$(MAKE) build-amd64
+	$(MAKE) build-amd64
 
 ##@
 ##@ Config commands
@@ -180,13 +186,19 @@ build: ##@ Build all arch linux kernel and rootfs
 			;; \
 		esac \
 
-clean: ##@ Clean all build files
+clean-amd64: ##@ Clean all amd64 build files
 	$(MAKE) kernel-amd64-clean
-	$(MAKE) kernel-arm64-clean
 	$(MAKE) rootfs-amd64-clean
+	$(MAKE) initrd-amd64-clean
+
+clean-arm64: ##@ Clean all arm64 build files
+	$(MAKE) kernel-arm64-clean
 	$(MAKE) rootfs-arm64-clean
 	$(MAKE) initrd-arm64-clean
-	$(MAKE) initrd-arm64-clean
+
+clean: ##@ Clean all build files
+	$(MAKE) clean-amd64
+	$(MAKE) clean-arm64
 
 ##@
 ##@ Misc commands
