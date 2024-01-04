@@ -1,0 +1,6 @@
+[Match]
+Path=/devices/virtual/net/*
+
+[Link]
+NamePolicy=kernel database onboard slot path
+MACAddressPolicy=none
