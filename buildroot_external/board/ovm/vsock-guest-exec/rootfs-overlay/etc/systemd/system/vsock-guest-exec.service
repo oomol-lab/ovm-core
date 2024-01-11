@@ -1,0 +1,13 @@
+[Unit]
+Requires=network.service
+Before=podman-restart.service
+After=network.service chrony.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/vsock_guest_exec 2:1027 persistent
+
+[Install]
+WantedBy=default.target
