@@ -1,0 +1,15 @@
+[Unit]
+Requires=sshd.service
+After=sshd.service
+Before=ready.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+ExecStartPre=/bin/mkdir -p /opt/ovm
+ExecStartPre=/bin/rm -f /opt/ovm/ssh-auth.sock
+ExecStart=socat UNIX-LISTEN:/opt/ovm/ssh-auth.sock,fork VSOCK-CONNECT:2:1028
+
+[Install]
+WantedBy=default.target
