@@ -1,0 +1,29 @@
+From 287ff273b7695149494b737d9ed32a693987db09 Mon Sep 17 00:00:00 2001
+From: Todd Rinaldo <toddr@cpan.org>
+Date: Fri, 29 Dec 2023 00:20:24 +0000
+Subject: [PATCH 11/12] Revert "Check for 'libexpat' rather than 'expat' on
+ Windows"
+
+This reverts commit d60f57f53682fc0966a454b42ef29380b6e0cf08.
+
+Signed-off-by: Kevin Cui <bh@bugs.cc>
+---
+ Makefile.PL | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile.PL b/Makefile.PL
+index 5d46e8d..505d1df 100644
+--- a/Makefile.PL
++++ b/Makefile.PL
+@@ -30,7 +30,7 @@ foreach (@ARGV) {
+ 
+ unless (
+     check_lib(    # fill in what you prompted the user for here
+-        lib     => [$^O eq 'MSWin32' ? qw(libexpat) : qw(expat)],
++        lib     => [qw(expat)],
+         header  => ['expat.h'],
+         incpath => $expat_incpath,
+         ( $expat_libpath ? ( libpath => $expat_libpath ) : () ),
+-- 
+2.43.0
+

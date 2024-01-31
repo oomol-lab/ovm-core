@@ -1,0 +1,35 @@
+From 352c1465b19b70a1d3a619c26ca15f6020628a59 Mon Sep 17 00:00:00 2001
+From: Todd Rinaldo <toddr@cpan.org>
+Date: Thu, 28 Dec 2023 20:26:36 +0000
+Subject: [PATCH 10/12] Update MANIFEST. Exclude Makefile
+
+Signed-off-by: Kevin Cui <bh@bugs.cc>
+---
+ MANIFEST      | 1 +
+ MANIFEST.SKIP | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/MANIFEST b/MANIFEST
+index aade5db..0173e15 100644
+--- a/MANIFEST
++++ b/MANIFEST
+@@ -5,6 +5,7 @@ Expat/Expat.xs			Extension library
+ Expat/Makefile.PL		perl MakeMaker script for XML::Parser::Expat
+ Expat/typemap			XS typemap
+ inc/Devel/CheckLib.pm
++LICENSE
+ Makefile.PL			perl MakeMaker script for XML::Parser
+ MANIFEST			This file
+ MANIFEST.SKIP
+diff --git a/MANIFEST.SKIP b/MANIFEST.SKIP
+index 714df8a..e9bd229 100644
+--- a/MANIFEST.SKIP
++++ b/MANIFEST.SKIP
+@@ -8,3 +8,4 @@ cpanfile
+ /MYMETA
+ ^Makefile$
+ \.github/
++^Expat/Makefile$
+-- 
+2.43.0
+
