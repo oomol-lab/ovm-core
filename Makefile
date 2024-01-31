@@ -1,4 +1,4 @@
-.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help
+.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help rootfs-% initrd-% kernel-%
 
 ROOTDIR := $(realpath .)
 
@@ -160,6 +160,36 @@ build: ##@ Build all arch linux kernel and rootfs and initrd
 			;; \
 		esac \
 
+##@
+##@ Custom commands
+##@
+
+rootfs-amd64 rootfs-arm64: rootfs-%: ##@ Execute custom command in rootfs with specified architecture
+	$(eval _ARCH := $(firstword $*))
+	@if [ "$(ARGS)" != "" ]; then \
+		$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) $(ARGS); \
+	else \
+		printf "Please specify a command\n" \
+		exit 1; \
+	fi;
+
+initrd-amd64 initrd-arm64: initrd-%: ##@ Execute custom command in initrd with specified architecture
+	$(eval _ARCH := $(firstword $*))
+	@if [ "$(ARGS)" != "" ]; then \
+		$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) $(ARGS); \
+	else \
+		printf "Please specify a command\n" \
+		exit 1; \
+	fi;
+
+kernel-amd64 kernel-arm64: kernel-%: ##@ Execute custom command in kernel with specified architecture
+	$(eval _ARCH := $(firstword $*))
+	@if [ "$(ARGS)" != "" ]; then \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) $(ARGS); \
+	else \
+		printf "Please specify a command\n" \
+		exit 1; \
+	fi;
 
 ##@
 ##@ Clean build files commands
