@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        run: |
+          gh release create \
+            ${{ github.ref_name }} \
+            -R ${{ github.repository }} \
+            --generate-notes \
+            --draft
+
+  release:
+    runs-on: ubuntu-latest
+    needs: pre-release
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - initrd
+          - rootfs
+          - kernel
+        arch:
+          - arm64
+          - amd64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Update kernel submodules
+        if: ${{ matrix.target == 'kernel'}}
+        run: git submodule update --init kernel
+
+      - name: Update buildroot submodules
+        if: ${{ matrix.target != 'kernel'}}
+        run: git submodule update --init buildroot
+
+      - name: Install deps
+        run: sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc
+
+      - name: Install kernel arm64 deps
+        if: ${{ matrix.target == 'kernel' && matrix.arch == 'arm64'}}
+        run: sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Defconfig
+        run: make ${{ matrix.target }}-${{ matrix.arch }}-defconfig
+
+      - name: Build
+        run: make ${{ matrix.target }}-${{ matrix.arch }}-build
+
+      - name: Upload binaries
+        run: |
+          OUTPATH=$(make print-outpath-${{ matrix.target }}-${{ matrix.arch }})
+          LABEL=${{ matrix.target }}-${{ matrix.arch }}-$OUTPATH
+
+          gh release upload \
+            ${{ github.ref_name }} \
+            $OUTPATH#$LABEL \
+            -R ${{ github.repository }} \
+            --clobber
+
+  post-release:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+
+    needs:
+      - pre-release
+      - release
+    steps:
+      - name: Update Release
+        if: ${{ needs.release.result == 'success' }}
+        run: |
+          gh release edit \
+            ${{ github.ref_name }} \
+            -R ${{ github.repository }} \
+            --draft=false
+
+      - name: Delete Release and Tag
+        if: ${{ needs.release.result != 'success' }}
+        run: |
+          gh release delete \
+            ${{ github.ref_name }} \
+            -R ${{ github.repository }} \
+            --cleanup-tag \
+            --yes
