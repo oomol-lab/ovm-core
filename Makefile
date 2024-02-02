@@ -1,4 +1,4 @@
-.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help rootfs-% initrd-% kernel-%
+.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help rootfs-% initrd-% kernel-% print-outpath-%
 
 ROOTDIR := $(realpath .)
 
@@ -229,6 +229,34 @@ clean-arm64: ##@ Clean all arm64 build files
 clean: ##@ Clean all build files
 	$(MAKE) clean-amd64
 	$(MAKE) clean-arm64
+
+##@
+##@ Misc commands
+##@
+
+print-outpath-%: ##@ Print out path of specified architecture
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+
+	@case $(_TARGET) in \
+		rootfs) \
+			echo -n $(ROOTDIR)/out/rootfs/$(_ARCH)/images/rootfs.erofs; \
+			;; \
+		initrd) \
+			echo -n $(ROOTDIR)/out/initrd/$(_ARCH)/images/initrd.gz; \
+			;; \
+		kernel) \
+			if [ $(_ARCH) == arm64 ]; then \
+				echo -n $(ROOTDIR)/out/kernel/arm64/arch/arm64/boot/Image; \
+			else \
+				echo -n $(ROOTDIR)/out/kernel/amd64/arch/x86/boot/bzImage; \
+			fi; \
+			;; \
+		*) \
+			printf "Please specify a menuconfig command\n" \
+			exit 1 \
+			;; \
+		esac \
 
 ##@
 ##@ Misc commands

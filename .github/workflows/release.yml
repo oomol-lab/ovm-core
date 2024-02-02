@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - initrd
+          - rootfs
+          - kernel
+        arch:
+          - arm64
+          - amd64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Update kernel submodules
+        if: ${{ matrix.target == 'kernel'}}
+        run: git submodule update --init kernel
+
+      - name: Update buildroot submodules
+        if: ${{ matrix.target != 'kernel'}}
+        run: git submodule update --init buildroot
+
+      - name: Defconfig
+        run: make ${{ matrix.target }}-${{ matrix.arch }}-defconfig
+      
+      - name: Build
+        run: make ${{ matrix.target }}-${{ matrix.arch }}-build
+
+      - name: List file
+        run: make print-outpath-${{ matrix.target }}-${{ matrix.arch }}
