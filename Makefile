@@ -1,4 +1,4 @@
-.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help rootfs-% initrd-% kernel-%
+.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help rootfs-% initrd-% kernel-% print-outpath-%
 
 ROOTDIR := $(realpath .)
 
@@ -21,7 +21,7 @@ ROOTDIR := $(realpath .)
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) ROOTFS_CPIO_IMAGE_NAME=initrd all; \
 			;; \
 		kernel) \
-			if [ $(_ARCH) == arm64 ]; then \
+			if [ $(_ARCH) = arm64 ]; then \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- all; \
 			else \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 all; \
@@ -64,7 +64,7 @@ build: ##@ Build all arch linux kernel and rootfs and initrd
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external initrd_$(_ARCH)_defconfig; \
 			;; \
 		kernel) \
-			if [ $(_ARCH) == arm64 ]; then \
+			if [ $(_ARCH) = arm64 ]; then \
 				mkdir -p $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
 				cp $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- kernel_$(_ARCH)_defconfig; \
@@ -96,7 +96,7 @@ build: ##@ Build all arch linux kernel and rootfs and initrd
 			echo "generate $(ROOTDIR)/buildroot_external/configs/initrd_$(_ARCH)_defconfig"; \
 			;; \
 		kernel) \
-			if [ $(_ARCH) == arm64 ]; then \
+			if [ $(_ARCH) = arm64 ]; then \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig; \
 			else \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) savedefconfig; \
@@ -123,7 +123,7 @@ build: ##@ Build all arch linux kernel and rootfs and initrd
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) nconfig; \
 			;; \
 		kernel) \
-			if [ $(_ARCH) == arm64 ]; then \
+			if [ $(_ARCH) = arm64 ]; then \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig; \
 			else \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 nconfig; \
@@ -148,7 +148,7 @@ build: ##@ Build all arch linux kernel and rootfs and initrd
 			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) menuconfig; \
 			;; \
 		kernel) \
-			if [ $(_ARCH) == arm64 ]; then \
+			if [ $(_ARCH) = arm64 ]; then \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig; \
 			else \
 				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 menuconfig; \
@@ -233,6 +233,30 @@ clean: ##@ Clean all build files
 ##@
 ##@ Misc commands
 ##@
+
+print-outpath-%: ##@ Print out path of specified architecture
+	$(eval _TARGET := $(firstword $(subst -, ,$*)))
+	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+
+	@case $(_TARGET) in \
+		rootfs) \
+			echo -n $(ROOTDIR)/out/rootfs/$(_ARCH)/images/rootfs.erofs; \
+			;; \
+		initrd) \
+			echo -n $(ROOTDIR)/out/initrd/$(_ARCH)/images/initrd.gz; \
+			;; \
+		kernel) \
+			if [ $(_ARCH) = arm64 ]; then \
+				echo -n $(ROOTDIR)/out/kernel/arm64/arch/arm64/boot/Image; \
+			else \
+				echo -n $(ROOTDIR)/out/kernel/amd64/arch/x86/boot/bzImage; \
+			fi; \
+			;; \
+		*) \
+			printf "Please specify a print-outpath command\n" \
+			exit 1 \
+			;; \
+		esac \
 
 help: ##@ (Default) Print listing of key targets with their descriptions
 	@printf "\nUsage: make <command>\n"
