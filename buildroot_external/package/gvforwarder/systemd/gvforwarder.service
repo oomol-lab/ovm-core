@@ -3,7 +3,6 @@ Description=gvisor-tap-vsock Network Traffic Forwarder
 Requires=network.service
 After=network.service
 StartLimitIntervalSec=0
-ConditionVirtualization=!wsl
 
 [Service]
 Type=simple

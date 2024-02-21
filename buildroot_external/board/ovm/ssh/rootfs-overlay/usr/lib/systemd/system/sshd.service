@@ -1,7 +1,6 @@
 [Unit]
 Description=OpenSSH server daemon
 After=syslog.target network.target auditd.service
-ConditionVirtualization=!wsl
 
 [Service]
 ExecStartPre=/usr/bin/ssh-keygen -A
