@@ -1,4 +1,4 @@
-.PHONY: %-build build rootfs-%-defconfig rootfs-%-savedefconfig %-nconfig %-menuconfig %-clean clean help rootfs-% initrd-% kernel-% print-outpath-%
+all: help
 
 ROOTDIR := $(realpath .)
 
@@ -6,188 +6,131 @@ ROOTDIR := $(realpath .)
 ##@ Build commands
 ##@
 
-%-build: ##@ Build linux kernel or rootfs or initrd. e.g.
-         ##@ rootfs-amd64-build / rootfs-arm64-build
-         ##@ kernel-amd64-build / initrd-arm64-build
-         ##@ initrd-amd64-build / initrd-arm64-build
-	$(eval _TARGET := $(firstword $(subst -, ,$*)))
-	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+.PHONY: build-applehv-rootfs-%  build-kernel-% build-initrd-% build-amd64 build-arm64 build
 
-	@case $(_TARGET) in \
-		rootfs) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) all; \
-			;; \
-		initrd) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) ROOTFS_CPIO_IMAGE_NAME=initrd all; \
-			;; \
-		kernel) \
-			if [ $(_ARCH) = arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- all; \
-			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 all; \
-			fi; \
-			;; \
-		*) \
-			printf "Please specify a build command\n" \
-			exit 1 \
-			;; \
-		esac \
+build-applehv-rootfs-amd64 build-applehv-rootfs-arm64: build-applehv-rootfs-%: ##@ Build applehv rootfs with specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/applehv_rootfs/$(_ARCH) all
+
+build-kernel-amd64 build-kernel-arm64: build-kernel-%: ##@ Build linux kernel with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@if [ $(_ARCH) = arm64 ]; then \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- all; \
+	else \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 all; \
+	fi;
+
+build-initrd-amd64 build-initrd-arm64: build-initrd-%: ##@ Build initrd with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) ROOTFS_CPIO_IMAGE_NAME=initrd all
 
 build-amd64: ##@ Build all amd64
-	$(MAKE) kernel-amd64-build
-	$(MAKE) rootfs-amd64-build
-	$(MAKE) initrd-amd64-build
+	$(MAKE) build-kernel-amd64
+	$(MAKE) build-applehv-rootfs-amd64
+	$(MAKE) build-initrd-amd64
 
 build-arm64: ##@ Build all arm64
-	$(MAKE) kernel-arm64-build
-	$(MAKE) rootfs-arm64-build
-	$(MAKE) initrd-arm64-build
+	$(MAKE) build-kernel-arm64
+	$(MAKE) build-applehv-rootfs-arm64
+	$(MAKE) build-initrd-arm64
 
 build: ##@ Build all arch linux kernel and rootfs and initrd
 	$(MAKE) build-amd64
-	$(MAKE) build-amd64
+	$(MAKE) build-arm64
 
 ##@
 ##@ Config commands
 ##@
 
-%-defconfig: ##@ Use defconfig configure linux kernel or rootfs
-             ##@ e.g. rootfs-amd64-defconfig / rootfs-arm64-defconfig / kernel-amd64-defconfig / kernel-arm64-defconfig
-	$(eval _TARGET := $(firstword $(subst -, ,$*)))
-	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+.PHONY: nconfig-applehv-rootfs-%  nconfig-initrd-% nconfig-kernel-%
 
-	@case $(_TARGET) in \
-		rootfs) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external rootfs_$(_ARCH)_defconfig; \
-			;; \
-		initrd) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external initrd_$(_ARCH)_defconfig; \
-			;; \
-		kernel) \
-			if [ $(_ARCH) = arm64 ]; then \
-				mkdir -p $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
-				cp $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- kernel_$(_ARCH)_defconfig; \
-			else \
-				mkdir -p $(ROOTDIR)/out/kernel/$(_ARCH)/arch/x86/configs/; \
-				cp $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig $(ROOTDIR)/out/kernel/$(_ARCH)/arch/x86/configs/; \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) kernel_$(_ARCH)_defconfig; \
-			fi; \
-			;; \
-		*) \
-			printf "Please specify a defconfig command\n" \
-			exit 1 \
-			;; \
-		esac \
+nconfig-applehv-rootfs-amd64 nconfig-applehv-rootfs-arm64: nconfig-applehv-rootfs-%: ##@ Use nconfig configure applehv rootfs with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/applehv_rootfs/$(_ARCH) nconfig
 
+nconfig-initrd-amd64 nconfig-initrd-arm64: nconfig-initrd-%: ##@ Use nconfig configure initrd with
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) nconfig
 
-%-savedefconfig: ##@ Use savedefconfig configure linux kernel or rootfs
-                 ##@ e.g. rootfs-amd64-savedefconfig / rootfs-arm64-savedefconfig / kernel-amd64-savedefconfig / kernel-arm64-savedefconfig
-	$(eval _TARGET := $(firstword $(subst -, ,$*)))
-	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+nconfig-kernel-amd64 nconfig-kernel-arm64: nconfig-kernel-%: ##@ Use nconfig configure linux kernel with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@if [ $(_ARCH) = arm64 ]; then \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig; \
+	else \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 nconfig; \
+	fi;
 
-	@case $(_TARGET) in \
-		rootfs) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) BR2_DEFCONFIG=$(ROOTDIR)/buildroot_external/configs/rootfs_$(_ARCH)_defconfig savedefconfig; \
-			echo "generate $(ROOTDIR)/buildroot_external/configs/rootfs_$(_ARCH)_defconfig"; \
-			;; \
-		initrd) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) BR2_DEFCONFIG=$(ROOTDIR)/buildroot_external/configs/initrd_$(_ARCH)_defconfig savedefconfig; \
-			echo "generate $(ROOTDIR)/buildroot_external/configs/initrd_$(_ARCH)_defconfig"; \
-			;; \
-		kernel) \
-			if [ $(_ARCH) = arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig; \
-			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) savedefconfig; \
-			fi; \
-			echo "generate $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig"; \
-			mv $(ROOTDIR)/out/kernel/$(_ARCH)/defconfig $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig; \
-			;; \
-		*) \
-			printf "Please specify a savedefconfig command\n" \
-			exit 1 \
-			;; \
-		esac \
+.PHONY: defconfig-applehv-rootfs-%  defconfig-initrd-% defconfig-kernel-%
 
-%-nconfig: ##@ Use nconfig configure linux kernel or rootfs 
-           ##@ e.g. rootfs-amd64-nconfig / rootfs-arm64-nconfig / kernel-amd64-nconfig / kernel-arm64-nconfig
-	$(eval _TARGET := $(firstword $(subst -, ,$*)))
-	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+defconfig-applehv-rootfs-amd64 defconfig-applehv-rootfs-arm64: defconfig-applehv-rootfs-%: ##@ Use defconfig configure applehv rootfs with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/applehv_rootfs/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external applehv_rootfs_$(_ARCH)_defconfig
 
-	@case $(_TARGET) in \
-		rootfs) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) nconfig; \
-			;; \
-		initrd) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) nconfig; \
-			;; \
-		kernel) \
-			if [ $(_ARCH) = arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig; \
-			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 nconfig; \
-			fi; \
-			;; \
-		*) \
-			printf "Please specify a nconfig command\n" \
-			exit 1 \
-			;; \
-		esac \
+defconfig-initrd-amd64 defconfig-initrd-arm64: defconfig-initrd-%: ##@ Use defconfig configure initrd with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external initrd_$(_ARCH)_defconfig
 
-%-menuconfig: ##@ Use menuconfig configure linux kernel or rootfs
-              ##@ e.g. rootfs-amd64-menuconfig / rootfs-arm64-menuconfig / kernel-amd64-menuconfig / kernel-arm64-menuconfig
-	$(eval _TARGET := $(firstword $(subst -, ,$*)))
-	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+defconfig-kernel-amd64 defconfig-kernel-arm64: defconfig-kernel-%: ##@ Use defconfig configure linux kernel with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@if [ $(_ARCH) = arm64 ]; then \
+		mkdir -p $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
+		cp $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig $(ROOTDIR)/out/kernel/$(_ARCH)/arch/arm64/configs/; \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- kernel_$(_ARCH)_defconfig; \
+	else \
+		mkdir -p $(ROOTDIR)/out/kernel/$(_ARCH)/arch/x86/configs/; \
+		cp $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig $(ROOTDIR)/out/kernel/$(_ARCH)/arch/x86/configs/; \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) kernel_$(_ARCH)_defconfig; \
+	fi;
 
-	@case $(_TARGET) in \
-		rootfs) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) menuconfig; \
-			;; \
-		initrd) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) menuconfig; \
-			;; \
-		kernel) \
-			if [ $(_ARCH) = arm64 ]; then \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig; \
-			else \
-				$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 menuconfig; \
-			fi; \
-			;; \
-		*) \
-			printf "Please specify a menuconfig command\n" \
-			exit 1 \
-			;; \
-		esac \
+.PHONY: savedefconfig-applehv-rootfs-% savedefconfig-initrd-% savedefconfig-kernel-%
+
+savedefconfig-applehv-rootfs-amd64 savedefconfig-applehv-rootfs-arm64: savedefconfig-applehv-rootfs-%: ##@ Use savedefconfig configure applehv rootfs with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/applehv_rootfs/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external savedefconfig
+
+savedefconfig-initrd-amd64 savedefconfig-initrd-arm64: savedefconfig-initrd-%: ##@ Use savedefconfig configure initrd with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external savedefconfig
+
+savedefconfig-kernel-amd64 savedefconfig-kernel-arm64: savedefconfig-kernel-%: ##@ Use savedefconfig configure linux kernel with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@if [ $(_ARCH) = arm64 ]; then \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/arm64 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- savedefconfig; \
+	else \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 savedefconfig; \
+	fi;
+	@mv $(ROOTDIR)/out/kernel/$(_ARCH)/defconfig $(ROOTDIR)/kernel_external/configs/kernel_$(_ARCH)_defconfig;
 
 ##@
 ##@ Custom commands
 ##@
 
-rootfs-amd64 rootfs-arm64: rootfs-%: ##@ Execute custom command in rootfs with specified architecture
+.PHONY: applehv-rootfs-% initrd-% kernel-%
+
+applehv-rootfs-amd64 applehv-rootfs-arm64: applehv-rootfs-%: ##@ Execute custom command in applehv rootfs with specified architecture
 	$(eval _ARCH := $(firstword $*))
-	@if [ "$(ARGS)" != "" ]; then \
-		$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) $(ARGS); \
+	@if [ "$(CMD)" != "" ]; then \
+		$(MAKE) -C buildroot O=$(ROOTDIR)/out/applehv_rootfs/$(_ARCH) $(CMD); \
 	else \
-		printf "Please specify a command\n" \
+		printf "Please specify a CMD param\n" \
 		exit 1; \
 	fi;
 
 initrd-amd64 initrd-arm64: initrd-%: ##@ Execute custom command in initrd with specified architecture
 	$(eval _ARCH := $(firstword $*))
-	@if [ "$(ARGS)" != "" ]; then \
-		$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) $(ARGS); \
+	@if [ "$(CMD)" != "" ]; then \
+		$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) $(CMD); \
 	else \
-		printf "Please specify a command\n" \
+		printf "Please specify a CMD param\n" \
 		exit 1; \
 	fi;
 
 kernel-amd64 kernel-arm64: kernel-%: ##@ Execute custom command in kernel with specified architecture
 	$(eval _ARCH := $(firstword $*))
-	@if [ "$(ARGS)" != "" ]; then \
-		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) $(ARGS); \
+	@if [ "$(CMD)" != "" ]; then \
+		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) $(CMD); \
 	else \
-		printf "Please specify a command\n" \
+		printf "Please specify a CMD param\n" \
 		exit 1; \
 	fi;
 
@@ -195,36 +138,29 @@ kernel-amd64 kernel-arm64: kernel-%: ##@ Execute custom command in kernel with s
 ##@ Clean build files commands
 ##@
 
-%-clean: ##@ Clean linux kernel or rootfs build files with specified architecture
-         ##@ e.g. rootfs-amd64-clean / rootfs-arm64-clean / kernel-amd64-clean / kernel-arm64-clean
-	$(eval _TARGET := $(firstword $(subst -, ,$*)))
-	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+.PHONY: clean-applehv-rootfs-% clean-initrd-% clean-kernel-% clean-amd64 clean-arm64 clean
 
-	@case $(_TARGET) in \
-		rootfs) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/rootfs/$(_ARCH) clean; \
-			;; \
-		initrd) \
-			$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) clean; \
-			;; \
-		kernel) \
-			$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) clean; \
-			;; \
-		*) \
-			printf "Please specify a clean command\n" \
-			exit 1 \
-			;; \
-		esac \
+clean-applehv-rootfs-amd64 clean-applehv-rootfs-arm64: clean-applehv-rootfs-%: ##@ Clean applehv rootfs build files with specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/applehv_rootfs/$(_ARCH) clean
+
+clean-initrd-amd64 clean-initrd-arm64: clean-initrd-%: ##@ Clean initrd build files with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/initrd/$(_ARCH) clean
+
+clean-kernel-amd64 clean-kernel-arm64: clean-kernel-%: ##@ Clean linux kernel build files with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) clean
 
 clean-amd64: ##@ Clean all amd64 build files
-	$(MAKE) kernel-amd64-clean
-	$(MAKE) rootfs-amd64-clean
-	$(MAKE) initrd-amd64-clean
+	$(MAKE) clean-kernel-amd64
+	$(MAKE) clean-applehv-rootfs-amd64
+	$(MAKE) clean-initrd-amd64
 
 clean-arm64: ##@ Clean all arm64 build files
-	$(MAKE) kernel-arm64-clean
-	$(MAKE) rootfs-arm64-clean
-	$(MAKE) initrd-arm64-clean
+	$(MAKE) clean-kernel-arm64
+	$(MAKE) clean-applehv-rootfs-arm64
+	$(MAKE) clean-initrd-arm64
 
 clean: ##@ Clean all build files
 	$(MAKE) clean-amd64
@@ -234,29 +170,24 @@ clean: ##@ Clean all build files
 ##@ Misc commands
 ##@
 
-print-outpath-%: ##@ Print out path of specified architecture
-	$(eval _TARGET := $(firstword $(subst -, ,$*)))
-	$(eval _ARCH := $(word 2, $(subst -, ,$*)))
+.PHONY: print-outpath-initrd-% print-outpath-kernel-% print-outpath-applehv-rootfs-% help
 
-	@case $(_TARGET) in \
-		rootfs) \
-			echo -n $(ROOTDIR)/out/rootfs/$(_ARCH)/images/rootfs.erofs; \
-			;; \
-		initrd) \
-			echo -n $(ROOTDIR)/out/initrd/$(_ARCH)/images/initrd.gz; \
-			;; \
-		kernel) \
-			if [ $(_ARCH) = arm64 ]; then \
-				echo -n $(ROOTDIR)/out/kernel/arm64/arch/arm64/boot/Image; \
-			else \
-				echo -n $(ROOTDIR)/out/kernel/amd64/arch/x86/boot/bzImage; \
-			fi; \
-			;; \
-		*) \
-			printf "Please specify a print-outpath command\n" \
-			exit 1 \
-			;; \
-		esac \
+print-outpath-initrd-amd64 print-outpath-initrd-arm64: print-outpath-initrd-%: ##@ Print out path of specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@echo -n $(ROOTDIR)/out/initrd/$(_ARCH)/images/initrd.gz
+
+print-outpath-kernel-amd64 print-outpath-kernel-arm64: print-outpath-kernel-%: ##@ Print out path of specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@if [ $(_ARCH) = arm64 ]; then \
+		echo -n $(ROOTDIR)/out/kernel/arm64/arch/arm64/boot/Image; \
+	else \
+		echo -n $(ROOTDIR)/out/kernel/amd64/arch/x86/boot/bzImage; \
+	fi;
+
+print-outpath-applehv-rootfs-amd64 print-outpath-applehv-rootfs-arm64: print-outpath-applehv-rootfs-%: ##@ Print out path of specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@echo -n $(ROOTDIR)/out/applehv_rootfs/$(_ARCH)/images/rootfs.erofs
+
 
 help: ##@ (Default) Print listing of key targets with their descriptions
 	@printf "\nUsage: make <command>\n"
