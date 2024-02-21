@@ -61,10 +61,10 @@ jobs:
         run: sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Defconfig
-        run: make ${{ matrix.target }}-${{ matrix.arch }}-defconfig
+        run: make defconfig-${{ matrix.target }}-${{ matrix.arch }}
 
       - name: Build
-        run: make ${{ matrix.target }}-${{ matrix.arch }}-build
+        run: make build-${{ matrix.target }}-${{ matrix.arch }}
 
       - name: Upload binaries
         run: |
