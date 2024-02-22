@@ -64,7 +64,7 @@ jobs:
         run: make defconfig-${{ matrix.target }}-${{ matrix.arch }}
 
       - name: Build
-        run: make build-${{ matrix.target }}-${{ matrix.arch }}
+        run: make build-${{ matrix.target }}-${{ matrix.arch }} -j$(nproc)
 
       - name: Upload binaries
         run: |
