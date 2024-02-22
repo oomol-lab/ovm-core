@@ -35,7 +35,7 @@ jobs:
       matrix:
         target:
           - initrd
-          - rootfs
+          - applehv-rootfs
           - kernel
         arch:
           - arm64
