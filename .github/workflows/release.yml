@@ -69,11 +69,13 @@ jobs:
       - name: Upload binaries
         run: |
           OUTPATH=$(make print-outpath-${{ matrix.target }}-${{ matrix.arch }})
-          LABEL=${{ matrix.target }}-${{ matrix.arch }}-$OUTPATH
+          FILENAME=`basename $OUTPATH`
+          NEW_FILENAME=${{ matrix.target }}-${{ matrix.arch }}.$FILENAME
+          cp $OUTPATH $NEW_FILENAME
 
           gh release upload \
             ${{ github.ref_name }} \
-            $OUTPATH#$LABEL \
+            ./$NEW_FILENAME \
             -R ${{ github.repository }} \
             --clobber
 
