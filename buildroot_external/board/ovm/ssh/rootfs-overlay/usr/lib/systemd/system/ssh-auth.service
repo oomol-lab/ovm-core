@@ -10,6 +10,7 @@ Restart=always
 ExecStartPre=/bin/mkdir -p /opt/ovm
 ExecStartPre=/bin/rm -f /opt/ovm/ssh-auth.sock
 ExecStart=socat UNIX-LISTEN:/opt/ovm/ssh-auth.sock,fork VSOCK-CONNECT:2:1028
+ExecStartPost=/bin/bash -c "while [ ! -e /opt/ovm/ssh-auth.sock ]; do sleep 0.1; done; /usr/bin/chmod a+rw /opt/ovm/ssh-auth.sock"
 
 [Install]
 WantedBy=default.target
