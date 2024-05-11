@@ -6,7 +6,11 @@ ROOTDIR := $(realpath .)
 ##@ Build commands
 ##@
 
-.PHONY: build-applehv-rootfs-%  build-kernel-% build-initrd-% build-amd64 build-arm64 build
+.PHONY: build-wsl-rootfs-% build-applehv-rootfs-%  build-kernel-% build-initrd-% build-amd64 build-arm64 build
+
+build-wsl-rootfs-amd64 build-wsl-rootfs-arm64: build-wsl-rootfs-%: ##@ Build wsl rootfs with specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/wsl_rootfs/$(_ARCH) all
 
 build-applehv-rootfs-amd64 build-applehv-rootfs-arm64: build-applehv-rootfs-%: ##@ Build applehv rootfs with specified architecture
 	$(eval _ARCH := $(firstword $(subst -, ,$*)))
@@ -26,13 +30,15 @@ build-initrd-amd64 build-initrd-arm64: build-initrd-%: ##@ Build initrd with spe
 
 build-amd64: ##@ Build all amd64
 	$(MAKE) build-kernel-amd64
-	$(MAKE) build-applehv-rootfs-amd64
 	$(MAKE) build-initrd-amd64
+	$(MAKE) build-applehv-rootfs-amd64
+	$(MAKE) build-wsl-rootfs-amd64
 
 build-arm64: ##@ Build all arm64
 	$(MAKE) build-kernel-arm64
-	$(MAKE) build-applehv-rootfs-arm64
 	$(MAKE) build-initrd-arm64
+	$(MAKE) build-applehv-rootfs-arm64
+	$(MAKE) build-wsl-rootfs-arm64
 
 build: ##@ Build all arch linux kernel and rootfs and initrd
 	$(MAKE) build-amd64
@@ -42,7 +48,11 @@ build: ##@ Build all arch linux kernel and rootfs and initrd
 ##@ Config commands
 ##@
 
-.PHONY: nconfig-applehv-rootfs-%  nconfig-initrd-% nconfig-kernel-%
+.PHONY: nconfig-wsl-rootfs-% nconfig-applehv-rootfs-%  nconfig-initrd-% nconfig-kernel-%
+
+nconfig-wsl-rootfs-amd64 nconfig-wsl-rootfs-arm64: nconfig-wsl-rootfs-%: ##@ Use nconfig configure wsl rootfs with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/wsl_rootfs/$(_ARCH) nconfig
 
 nconfig-applehv-rootfs-amd64 nconfig-applehv-rootfs-arm64: nconfig-applehv-rootfs-%: ##@ Use nconfig configure applehv rootfs with specified
 	$(eval _ARCH := $(firstword $(subst -, ,$*)))
@@ -60,7 +70,11 @@ nconfig-kernel-amd64 nconfig-kernel-arm64: nconfig-kernel-%: ##@ Use nconfig con
 		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/amd64 nconfig; \
 	fi;
 
-.PHONY: defconfig-applehv-rootfs-%  defconfig-initrd-% defconfig-kernel-%
+.PHONY: defconfig-wsl-rootfs-% defconfig-applehv-rootfs-%  defconfig-initrd-% defconfig-kernel-%
+
+defconfig-wsl-rootfs-amd64 defconfig-wsl-rootfs-arm64: defconfig-wsl-rootfs-%: ##@ Use defconfig configure wsl rootfs
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/wsl_rootfs/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external wsl_rootfs_$(_ARCH)_defconfig
 
 defconfig-applehv-rootfs-amd64 defconfig-applehv-rootfs-arm64: defconfig-applehv-rootfs-%: ##@ Use defconfig configure applehv rootfs with specified
 	$(eval _ARCH := $(firstword $(subst -, ,$*)))
@@ -82,7 +96,11 @@ defconfig-kernel-amd64 defconfig-kernel-arm64: defconfig-kernel-%: ##@ Use defco
 		$(MAKE) -C kernel O=$(ROOTDIR)/out/kernel/$(_ARCH) kernel_$(_ARCH)_defconfig; \
 	fi;
 
-.PHONY: savedefconfig-applehv-rootfs-% savedefconfig-initrd-% savedefconfig-kernel-%
+.PHONY: savedefconfig-wsl-rootfs-% savedefconfig-applehv-rootfs-% savedefconfig-initrd-% savedefconfig-kernel-%
+
+savedefconfig-wsl-rootfs-amd64 savedefconfig-wsl-rootfs-arm64: savedefconfig-wsl-rootfs-%: ##@ Use savedefconfig configure wsl rootfs with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/wsl_rootfs/$(_ARCH) BR2_EXTERNAL=$(ROOTDIR)/buildroot_external savedefconfig
 
 savedefconfig-applehv-rootfs-amd64 savedefconfig-applehv-rootfs-arm64: savedefconfig-applehv-rootfs-%: ##@ Use savedefconfig configure applehv rootfs with specified
 	$(eval _ARCH := $(firstword $(subst -, ,$*)))
@@ -105,7 +123,16 @@ savedefconfig-kernel-amd64 savedefconfig-kernel-arm64: savedefconfig-kernel-%: #
 ##@ Custom commands
 ##@
 
-.PHONY: applehv-rootfs-% initrd-% kernel-%
+.PHONY: wsl-rootfs-% applehv-rootfs-% initrd-% kernel-%
+
+wsl-rootfs-amd64 wsl-rootfs-arm64: wsl-rootfs-%: ##@ Execute custom command in wsl wsl rootfs with specified architecture
+	$(eval _ARCH := $(firstword $*))
+	@if [ "$(CMD)" != "" ]; then \
+		$(MAKE) -C buildroot O=$(ROOTDIR)/out/wsl_rootfs/$(_ARCH) $(CMD); \
+	else \
+		printf "Please specify a CMD param\n" \
+		exit 1; \
+	fi;
 
 applehv-rootfs-amd64 applehv-rootfs-arm64: applehv-rootfs-%: ##@ Execute custom command in applehv rootfs with specified architecture
 	$(eval _ARCH := $(firstword $*))
@@ -138,7 +165,11 @@ kernel-amd64 kernel-arm64: kernel-%: ##@ Execute custom command in kernel with s
 ##@ Clean build files commands
 ##@
 
-.PHONY: clean-applehv-rootfs-% clean-initrd-% clean-kernel-% clean-amd64 clean-arm64 clean
+.PHONY: clean-wsl-rootfs-% clean-applehv-rootfs-% clean-initrd-% clean-kernel-% clean-amd64 clean-arm64 clean
+
+clean-wsl-rootfs-amd64 clean-wsl-rootfs-arm64: clean-wsl-rootfs-%: ##@ Clean wsl rootfs build files with specified
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	$(MAKE) -C buildroot O=$(ROOTDIR)/out/wsl_rootfs/$(_ARCH) clean
 
 clean-applehv-rootfs-amd64 clean-applehv-rootfs-arm64: clean-applehv-rootfs-%: ##@ Clean applehv rootfs build files with specified architecture
 	$(eval _ARCH := $(firstword $(subst -, ,$*)))
@@ -154,13 +185,15 @@ clean-kernel-amd64 clean-kernel-arm64: clean-kernel-%: ##@ Clean linux kernel bu
 
 clean-amd64: ##@ Clean all amd64 build files
 	$(MAKE) clean-kernel-amd64
-	$(MAKE) clean-applehv-rootfs-amd64
 	$(MAKE) clean-initrd-amd64
+	$(MAKE) clean-applehv-rootfs-amd64
+	$(MAKE) clean-wsl-rootfs-amd64
 
 clean-arm64: ##@ Clean all arm64 build files
 	$(MAKE) clean-kernel-arm64
-	$(MAKE) clean-applehv-rootfs-arm64
 	$(MAKE) clean-initrd-arm64
+	$(MAKE) clean-applehv-rootfs-arm64
+	$(MAKE) clean-wsl-rootfs-arm64
 
 clean: ##@ Clean all build files
 	$(MAKE) clean-amd64
@@ -170,7 +203,11 @@ clean: ##@ Clean all build files
 ##@ Misc commands
 ##@
 
-.PHONY: print-outpath-initrd-% print-outpath-kernel-% print-outpath-applehv-rootfs-% help
+.PHONY:print-outpath-wsl-rootfs-%  print-outpath-initrd-% print-outpath-kernel-% print-outpath-applehv-rootfs-% help
+
+print-outpath-wsl-rootfs-amd64 print-outpath-wsl-rootfs-arm64: print-outpath-wsl-rootfs-%: ##@ Print out path of specified architecture
+	$(eval _ARCH := $(firstword $(subst -, ,$*)))
+	@echo -n $(ROOTDIR)/out/wsl_rootfs/$(_ARCH)/images/rootfs.ext4
 
 print-outpath-initrd-amd64 print-outpath-initrd-arm64: print-outpath-initrd-%: ##@ Print out path of specified architecture
 	$(eval _ARCH := $(firstword $(subst -, ,$*)))
