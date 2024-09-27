@@ -112,12 +112,11 @@ jobs:
     if: ${{ success() }}
 
     steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: "arn:aws:iam::${{ secrets.AWS_IAM_ACCOUNT_ID }}:role/github-action-oomol-lab-ovm-core"
-          role-session-name: "github-action-oomol-lab-ovm-core"
-          aws-region: us-east-1
+      - name: Configure R2 Credentials
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.R2_OOMOL_STATIC_S3_AK }}
+          aws configure set aws_secret_access_key ${{ secrets.R2_OOMOL_STATIC_S3_SK }}
+          aws configure set region auto
 
       - name: Upload To S3
         run: |
@@ -129,6 +128,7 @@ jobs:
       - name: Upload To S3
         run: |
           aws s3 cp \
+            --endpoint-url ${{ secrets.R2_OOMOL_STATIC_S3_ENDPOINT }} \
             ./out/ \
             s3://oomol-static/ovm-resources/ovm-core/${{ github.ref_name }} \
             --recursive --include "*"
